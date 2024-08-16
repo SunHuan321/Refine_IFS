@@ -49,45 +49,41 @@ definition vpeqa :: "('l\<^sub>a,'k\<^sub>a,'s\<^sub>a,'prog\<^sub>a) pesconf \<
 definition obsa :: " 'd \<Rightarrow> ('l\<^sub>a,'k\<^sub>a,'s\<^sub>a,'prog\<^sub>a) pesconf \<Rightarrow> 'o\<^sub>a" 
   where "obsa d C = obs\<^sub>a (gets C) d"
 
-definition PiCore_SM\<^sub>c :: "(('l\<^sub>c,'k\<^sub>c,'s\<^sub>c,'prog\<^sub>c) pesconf, 'd, ('l\<^sub>c,'k\<^sub>c,'s\<^sub>c,'prog\<^sub>c, 'd) action, 'o\<^sub>c) SM"
-  where "PiCore_SM\<^sub>c \<equiv> \<lparr>s0 = C0\<^sub>c, step = step\<^sub>c, domain = domain, obs = obsc, vpeq = vpeqc, interference = interference\<^sub>c\<rparr>"
-
-definition PiCore_SM\<^sub>a :: "(('l\<^sub>a,'k\<^sub>a,'s\<^sub>a,'prog\<^sub>a) pesconf, 'd, ('l\<^sub>a,'k\<^sub>a,'s\<^sub>a,'prog\<^sub>a, 'd) action, 'o\<^sub>a) SM"
-  where "PiCore_SM\<^sub>a \<equiv> \<lparr>s0 = C0\<^sub>a, step = step\<^sub>a, domain = domain, obs = obsa, vpeq = vpeqa, interference = interference\<^sub>a\<rparr>"
-
-interpretation SM_Refine PiCore_SM\<^sub>c PiCore_SM\<^sub>a sim_s sim_a
+interpretation SM_Refine C0\<^sub>c step\<^sub>c domain InfoFlow\<^sub>c.obsC InfoFlow\<^sub>c.vpeqC interference\<^sub>c
+                         C0\<^sub>a step\<^sub>a domain InfoFlow\<^sub>a.obsC InfoFlow\<^sub>a.vpeqC interference\<^sub>a
+                         sim_s sim_a
 proof
-  show " \<forall>s t r d. vpeq PiCore_SM\<^sub>c s d t \<and> vpeq PiCore_SM\<^sub>c t d r \<longrightarrow> vpeq PiCore_SM\<^sub>c s d r"
-    by (metis (no_types, opaque_lifting) InfoFlow\<^sub>c.vpeq_transitive PiCore_SM\<^sub>c_def SM.select_convs(5) vpeqc_def)
-  show "\<forall>s t d. vpeq PiCore_SM\<^sub>c s d t \<longrightarrow> vpeq PiCore_SM\<^sub>c t d s"
-    using InfoFlow\<^sub>c.vpeq_symmetric PiCore_SM\<^sub>c_def vpeqc_def by auto
-  show "\<forall>s d. vpeq PiCore_SM\<^sub>c s d s"
-    by (simp add: InfoFlow\<^sub>c.vpeq_reflexive PiCore_SM\<^sub>c_def vpeqc_def)
-  show "\<forall>s t r d. vpeq PiCore_SM\<^sub>a s d t \<and> vpeq PiCore_SM\<^sub>a t d r \<longrightarrow> vpeq PiCore_SM\<^sub>a s d r"
-    by (metis (no_types, lifting) InfoFlow\<^sub>a.vpeq_transitive PiCore_SM\<^sub>a_def SM.select_convs(5) vpeqa_def)
-  show "\<forall>s t d. vpeq PiCore_SM\<^sub>a s d t \<longrightarrow> vpeq PiCore_SM\<^sub>a t d s"
-    by (simp add: InfoFlow\<^sub>a.vpeq_symmetric PiCore_SM\<^sub>a_def vpeqa_def)
-  show "\<forall>s d. vpeq PiCore_SM\<^sub>a s d s"
-    by (simp add: InfoFlow\<^sub>a.vpeq_reflexive PiCore_SM\<^sub>a_def vpeqa_def)
-  show " sim_s (s0 PiCore_SM\<^sub>c) = s0 PiCore_SM\<^sub>a"
-    by (simp add: PiCore_SM\<^sub>a_def PiCore_SM\<^sub>c_def init_sim)
-  show "\<And>ac aa sc tc. sim_a ac = Some aa \<longrightarrow> (sc, tc) \<in> step PiCore_SM\<^sub>c ac \<longrightarrow> (sim_s sc, sim_s tc) \<in> step PiCore_SM\<^sub>a aa"
-    by (simp add: PiCore_SM\<^sub>a_def PiCore_SM\<^sub>c_def action_refine)
-  show "\<And>ac sc tc. sim_a ac = None \<longrightarrow> (sc, tc) \<in> step PiCore_SM\<^sub>c ac \<longrightarrow> sim_s sc = sim_s tc"
-    by (simp add: PiCore_SM\<^sub>c_def none_refine)
-  show "interference PiCore_SM\<^sub>c = interference PiCore_SM\<^sub>a"
-    using PiCore_SM\<^sub>a_def PiCore_SM\<^sub>c_def intefere_same by force
-  show "\<And>ac aa. sim_a ac = Some aa \<longrightarrow> SM.domain PiCore_SM\<^sub>c ac = SM.domain PiCore_SM\<^sub>a aa"
-    by (simp add: PiCore_SM\<^sub>a_def PiCore_SM\<^sub>c_def dom_refine)
-  show " \<And>sc d tc. vpeq PiCore_SM\<^sub>a (sim_s sc) d (sim_s tc) = vpeq PiCore_SM\<^sub>c sc d tc"
-    by (simp add: PiCore_SM\<^sub>a_def PiCore_SM\<^sub>c_def sim_ifs vpeqa_def vpeqc_def)
+  show " \<forall>a b c u. InfoFlow\<^sub>c.vpeqC a u b \<and> InfoFlow\<^sub>c.vpeqC b u c \<longrightarrow> InfoFlow\<^sub>c.vpeqC a u c"
+    using InfoFlow\<^sub>c.vpeqC_transitive by force
+  show "\<forall>a b u. InfoFlow\<^sub>c.vpeqC a u b \<longrightarrow> InfoFlow\<^sub>c.vpeqC b u a"
+    using InfoFlow\<^sub>c.vpeqC_symmetric by blast
+  show " \<forall>a u. InfoFlow\<^sub>c.vpeqC a u a"
+    using InfoFlow\<^sub>c.vpeqC_reflexive by blast
+  show " \<forall>a b c u. InfoFlow\<^sub>a.vpeqC a u b \<and> InfoFlow\<^sub>a.vpeqC b u c \<longrightarrow> InfoFlow\<^sub>a.vpeqC a u c"
+    using InfoFlow\<^sub>a.vpeqC_transitive by fastforce
+  show "\<forall>a b u. InfoFlow\<^sub>a.vpeqC a u b \<longrightarrow> InfoFlow\<^sub>a.vpeqC b u a"
+    using InfoFlow\<^sub>a.vpeqC_symmetric by force
+  show "\<forall>a u. InfoFlow\<^sub>a.vpeqC a u a"
+    using InfoFlow\<^sub>a.vpeqC_reflexive by blast
+  show "sim_s C0\<^sub>c = C0\<^sub>a"
+    by (simp add: init_sim)
+  show "\<And>a\<^sub>c a\<^sub>a s\<^sub>c t\<^sub>c. sim_a a\<^sub>c = Some a\<^sub>a \<longrightarrow> (s\<^sub>c, t\<^sub>c) \<in> step\<^sub>c a\<^sub>c \<longrightarrow> (sim_s s\<^sub>c, sim_s t\<^sub>c) \<in> step\<^sub>a a\<^sub>a"
+    by (simp add: action_refine)
+  show "\<And>a\<^sub>c s\<^sub>c t\<^sub>c. sim_a a\<^sub>c = None \<longrightarrow> (s\<^sub>c, t\<^sub>c) \<in> step\<^sub>c a\<^sub>c \<longrightarrow> sim_s s\<^sub>c = sim_s t\<^sub>c"
+    by (simp add: none_refine)
+  show "interference\<^sub>c = interference\<^sub>a"
+    using  intefere_same by force
+  show "\<And>a\<^sub>c a\<^sub>a. sim_a a\<^sub>c = Some a\<^sub>a \<longrightarrow> domain a\<^sub>c = domain a\<^sub>a"
+    by (simp add:  dom_refine)
+  show "\<And>s\<^sub>c d t\<^sub>c. InfoFlow\<^sub>a.vpeqC (sim_s s\<^sub>c) d (sim_s t\<^sub>c) = InfoFlow\<^sub>c.vpeqC s\<^sub>c d t\<^sub>c"
+    by (simp add: InfoFlow\<^sub>a.vpeqC_def InfoFlow\<^sub>c.vpeqC_def sim_ifs)
 qed
 
-theorem PiCore_abs_lr_imp: "local_respect PiCore_SM\<^sub>a \<Longrightarrow> local_respect PiCore_SM\<^sub>c"
-  using abs_lr_imp by blast
+theorem PiCore_abs_lr_imp: "InfoFlow\<^sub>a.local_respectC \<Longrightarrow> InfoFlow\<^sub>c.local_respectC"
+  using InfoFlow\<^sub>a.local_respectC_equiv InfoFlow\<^sub>c.local_respectC_equiv abs_lr_imp by blast
 
-theorem PiCore_abs_wsc_imp: "weak_step_consistent PiCore_SM\<^sub>a \<Longrightarrow> weak_step_consistent PiCore_SM\<^sub>c"
-  using abs_wsc_imp by fastforce
+theorem PiCore_abs_wsc_imp: "InfoFlow\<^sub>a.weak_step_consistentC \<Longrightarrow> InfoFlow\<^sub>c.weak_step_consistentC"
+  using InfoFlow\<^sub>a.weak_step_consistentC_equiv InfoFlow\<^sub>c.weak_step_consistentC_equiv abs_wsc_imp by fastforce
 
 end
 
