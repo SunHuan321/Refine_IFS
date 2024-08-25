@@ -19,7 +19,7 @@ definition body :: "('l,'s,'prog) event' \<Rightarrow> 'prog" where
 datatype ('l,'k,'s,'prog) event =
       AnonyEvent "'prog" 
     | BasicEvent "('l,'s,'prog) event'" 
-
+                                
 datatype ('l,'k,'s,'prog) esys = 
       EvtSeq "('l,'k,'s,'prog) event" "('l,'k,'s,'prog) esys"
     | EvtSys "('l,'k,'s,'prog) event set" 

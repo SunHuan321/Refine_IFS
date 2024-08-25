@@ -32,7 +32,7 @@ assumes
   none_refine : "\<lbrakk>sim_a a\<^sub>c = None; InfoFlow\<^sub>c.reachablec0 C\<^sub>c; C\<^sub>c \<sim> C\<^sub>a; (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c\<rbrakk> \<Longrightarrow> C\<^sub>c' \<sim> C\<^sub>a" and
   intefere_same : "interference\<^sub>c  = interference\<^sub>a" and 
   dom_refine : "sim_a a\<^sub>c = Some a\<^sub>a \<longrightarrow> domain a\<^sub>c = domain a\<^sub>a" and 
-  sim_ifs : "\<lbrakk>C\<^sub>c \<sim> C\<^sub>a; T\<^sub>c \<sim> T\<^sub>a\<rbrakk> \<Longrightarrow>  (gets C\<^sub>a) \<sim>\<^sub>a d \<sim>\<^sub>a (gets T\<^sub>a) = (gets C\<^sub>c) \<sim>\<^sub>c d \<sim>\<^sub>c (gets T\<^sub>c)" 
+  sim_ifs : "\<lbrakk>C\<^sub>c \<sim> C\<^sub>a; T\<^sub>c \<sim> T\<^sub>a\<rbrakk> \<Longrightarrow>  (gets C\<^sub>a) \<sim>\<^sub>a d \<sim>\<^sub>a (gets T\<^sub>a) = (gets C\<^sub>c) \<sim>\<^sub>c d \<sim>\<^sub>c (gets T\<^sub>c)"
 begin
 
 thm action_refine

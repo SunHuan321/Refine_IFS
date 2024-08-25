@@ -221,7 +221,7 @@ proof-
 qed
 
 end
-*)
+
 (*
 locale SM_Refine = 
   SM_IFS\<^sub>c: SM_IFS s0\<^sub>c step\<^sub>c domain\<^sub>c obs\<^sub>c vpeq\<^sub>c interference\<^sub>c +

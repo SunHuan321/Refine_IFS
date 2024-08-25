@@ -2,3 +2,5 @@
 .DS_Store
 *.thy~
 *.thy#
+*.thy~
+*.thy~

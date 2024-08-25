@@ -12,6 +12,20 @@ datatype ('l,'k,'s,'prog) act =
     Cmd "'prog" 
     | EvtEnt "('l,'k,'s,'prog) event" 
 
+primrec is_Cmd_act :: "('l,'k,'s,'prog) act \<Rightarrow> bool"
+  where "is_Cmd_act (Cmd _) = True" |
+        "is_Cmd_act (EvtEnt _) = False"
+
+primrec is_EvtEnt_act :: "('l,'k,'s,'prog) act \<Rightarrow> bool"
+  where "is_EvtEnt_act (Cmd _) = False" |
+        "is_EvtEnt_act (EvtEnt _) = True"
+
+lemma Cmd_isnot_EvtEnt: "is_Cmd_act a \<Longrightarrow> \<not> is_EvtEnt_act a"
+  by (metis act.exhaust is_Cmd_act.simps(2) is_EvtEnt_act.simps(1))
+
+lemma EvtEnt_isnot_Cmd: "is_EvtEnt_act a \<Longrightarrow> \<not> is_Cmd_act a"
+  using Cmd_isnot_EvtEnt by blast
+
 record ('l,'k,'s,'prog) actk =  Act  :: "('l,'k,'s,'prog) act" 
                               K   :: "'k"
 
@@ -75,6 +89,13 @@ definition getact :: "('l,'k,'s,'prog) actk \<Rightarrow> ('l,'k,'s,'prog) act" 
 
 definition getk :: "('l,'k,'s,'prog) actk \<Rightarrow> 'k" where
   "getk a \<equiv> K a"
+
+fun all_evts_es :: "('l,'k,'s,'prog) esys \<Rightarrow> ('l,'k,'s,'prog) event set" 
+  where all_evts_es_seq: "all_evts_es (EvtSeq e es) = insert e (all_evts_es es)" |
+        all_evts_es_esys: "all_evts_es (EvtSys es) = es"
+
+definition all_evts :: "('l,'k,'s,'prog) paresys \<Rightarrow> ('l,'k,'s,'prog) event set"
+  where "all_evts parsys \<equiv> \<Union>k. all_evts_es (parsys k)"
 
 
 (* 'Env: type of context, such as procedures defined in a system *)
