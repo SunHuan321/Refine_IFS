@@ -12,12 +12,13 @@ locale InfoFlow = event ptran petran fin_com
   and petran :: "'Env \<Rightarrow> ('s,'prog) pconf \<Rightarrow> ('s,'prog) pconf \<Rightarrow> bool"  ("_ \<turnstile> _ -pe\<rightarrow> _" [81,81,81] 80) 
   and fin_com :: "'prog"
   +
-  fixes C0  ::  "('l,'k,'s, 'prog) pesconf"
-  fixes step :: "('l,'k,'s, 'prog, 'd) action \<Rightarrow> (('l,'k,'s, 'prog) pesconf \<times> ('l,'k,'s, 'prog) pesconf) set"
-  fixes interference :: "'d \<Rightarrow> 'd \<Rightarrow> bool" ("(_ \<leadsto> _)" [70,71] 60)
-  fixes vpeq ::  "'s \<Rightarrow> 'd \<Rightarrow> 's \<Rightarrow> bool" ("(_ \<sim>_\<sim> _)" [70,69,70] 60)
-  fixes obs ::  "'s \<Rightarrow> 'd \<Rightarrow> 'o" (infixl "\<guillemotright>"  55)
-  fixes dome :: "'s  \<Rightarrow> ('l,'k,'s, 'prog) event \<Rightarrow> 'd"
+  fixes \<Gamma> :: "'Env"
+    and C0 ::  "('l,'k,'s, 'prog) pesconf"
+    and step :: "('l,'k,'s, 'prog, 'd) action \<Rightarrow> (('l,'k,'s, 'prog) pesconf \<times> ('l,'k,'s, 'prog) pesconf) set"
+    and interference :: "'d \<Rightarrow> 'd \<Rightarrow> bool" ("(_ \<leadsto> _)" [70,71] 60)
+    and vpeq ::  "'s \<Rightarrow> 'd \<Rightarrow> 's \<Rightarrow> bool" ("(_ \<sim>_\<sim> _)" [70,69,70] 60)
+    and obs ::  "'s \<Rightarrow> 'd \<Rightarrow> 'o" (infixl "\<guillemotright>"  55)
+    and dome :: "'s  \<Rightarrow> ('l,'k,'s, 'prog) event \<Rightarrow> 'd"
   assumes vpeq_transitive : "\<forall> a b c u. (a \<sim> u \<sim> b) \<and> (b \<sim> u \<sim> c) \<longrightarrow> (a \<sim> u \<sim> c)"
     and   vpeq_symmetric : "\<forall> a b u. (a \<sim> u \<sim> b) \<longrightarrow> (b \<sim> u \<sim> a)"
     and   vpeq_reflexive : "\<forall> a u. (a \<sim> u \<sim> a)"
