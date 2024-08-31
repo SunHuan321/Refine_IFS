@@ -119,7 +119,7 @@ coinductive e_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) ec
 
                    (e\<^sub>c = AnonyEvent fin_com\<^sub>c \<longrightarrow> e\<^sub>a = AnonyEvent fin_com\<^sub>a \<and> (s\<^sub>c, s\<^sub>a) \<in> \<gamma> \<and> \<gamma> \<subseteq> \<alpha>) ; 
 
-                   (\<forall>s\<^sub>c' s\<^sub>a'. ((s\<^sub>c, s\<^sub>c'), (s\<^sub>a, s\<^sub>a')) \<in> ((R\<^sub>c, R\<^sub>a \<union> Id)\<^sub>\<alpha>) \<longrightarrow> 
+                   (\<forall>s\<^sub>c' s\<^sub>a' x\<^sub>c' x\<^sub>a'. ((s\<^sub>c, s\<^sub>c'), (s\<^sub>a, s\<^sub>a')) \<in> ((R\<^sub>c, R\<^sub>a \<union> Id)\<^sub>\<alpha>) \<longrightarrow> 
                      (\<Gamma>\<^sub>c, (e\<^sub>c, s\<^sub>c', x\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (e\<^sub>a, s\<^sub>a', x\<^sub>a'), R\<^sub>a, G\<^sub>a))      
                   \<rbrakk> \<Longrightarrow> (\<Gamma>\<^sub>c, (e\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (e\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)"
 
@@ -189,7 +189,7 @@ lemma AnonyEvt_Sound_lemma : "(\<Gamma>\<^sub>c, (P\<^sub>c, s\<^sub>c), R\<^sub
   using prog_sim_validity apply blast
   using prog_sim_validity by blast
 
-theorem AnonyEvent_Sound : "(\<Gamma>\<^sub>c, P\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>)  (\<Gamma>\<^sub>a, P\<^sub>a, R\<^sub>a, G\<^sub>a) \<Longrightarrow>  
+theorem AnonyEvent_rule : "(\<Gamma>\<^sub>c, P\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>)  (\<Gamma>\<^sub>a, P\<^sub>a, R\<^sub>a, G\<^sub>a) \<Longrightarrow>  
                             (\<Gamma>\<^sub>c, AnonyEvent P\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>)  (\<Gamma>\<^sub>a, AnonyEvent P\<^sub>a, R\<^sub>a, G\<^sub>a)"
   by (simp add: AnonyEvt_Sound_lemma e_sim_pre_def prog_sim_pre_validity)
 
@@ -222,7 +222,7 @@ proof-
     using a6 a8 by blast
 qed
 
-theorem BasicEvent_Sound : "\<lbrakk>(\<Gamma>\<^sub>c, P\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<eta>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>)  (\<Gamma>\<^sub>a, P\<^sub>a, R\<^sub>a, G\<^sub>a); \<xi> \<subseteq> g\<^sub>c \<rightleftharpoons>\<^sub>r g\<^sub>a; P\<^sub>a \<noteq> fin_com\<^sub>a; 
+theorem BasicEvent_rule : "\<lbrakk>(\<Gamma>\<^sub>c, P\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<eta>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>)  (\<Gamma>\<^sub>a, P\<^sub>a, R\<^sub>a, G\<^sub>a); \<xi> \<subseteq> g\<^sub>c \<rightleftharpoons>\<^sub>r g\<^sub>a; P\<^sub>a \<noteq> fin_com\<^sub>a; 
       \<eta> = \<xi> \<inter> (g\<^sub>c \<and>\<^sub>r g\<^sub>a); Stable \<eta> ((R\<^sub>c, R\<^sub>a \<union> Id)\<^sub>\<alpha>); Stable \<xi> ((R\<^sub>c, R\<^sub>a \<union> Id)\<^sub>\<alpha>); \<xi> \<subseteq> \<alpha> \<rbrakk> \<Longrightarrow>
       (\<Gamma>\<^sub>c, BasicEvent (l\<^sub>c, g\<^sub>c, P\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>)  (\<Gamma>\<^sub>a, BasicEvent (l\<^sub>a, g\<^sub>a, P\<^sub>a), R\<^sub>a, G\<^sub>a)"
   apply (simp add: e_sim_pre_def, clarify)
@@ -245,26 +245,40 @@ coinductive es_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) e
   ("'(_,_,_,_')/ \<preceq>\<^sub>e\<^sub>s \<^sub>'(\<^sub>_\<^sub>;\<^sub>_\<^sub>;\<^sub>_\<^sub>') /'(_,_,_,_')" [81,81,81,81,81,81,81,81,81,81,81] 100)
   where rgsim : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<alpha>; 
                   
-                  (\<forall>k.
+                  (\<forall>k. 
 
-                  (\<forall>ec es\<^sub>c' x\<^sub>c'. (\<Gamma>\<^sub>c \<turnstile>\<^sub>c (es\<^sub>c, s\<^sub>c, x\<^sub>c) -es-((EvtEnt ec)\<sharp>k)\<rightarrow> (es\<^sub>c', s\<^sub>c, x\<^sub>c')) \<longrightarrow>(\<exists>ea es\<^sub>a' x\<^sub>a'. 
-                   (\<Gamma>\<^sub>a \<turnstile>\<^sub>a (es\<^sub>a, s\<^sub>a, x\<^sub>a) -es-((EvtEnt ea)\<sharp>k)\<rightarrow> (es\<^sub>a', s\<^sub>a, x\<^sub>a')) \<and> \<zeta> ec = ea \<and> 
-                    (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c, x\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a', s\<^sub>a, x\<^sub>a'), R\<^sub>a, G\<^sub>a))) \<and>
 
-                  (\<forall>Pc es\<^sub>c' s\<^sub>c'. (\<Gamma>\<^sub>c \<turnstile>\<^sub>c (es\<^sub>c, s\<^sub>c, x\<^sub>c) -es-((Cmd Pc)\<sharp>k)\<rightarrow> (es\<^sub>c', s\<^sub>c, x\<^sub>c')) \<and> \<gamma> (x\<^sub>c k) Pc = None \<longrightarrow>
-                  (s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c \<and> (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c', x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)) \<and>
+                  (\<forall>e\<^sub>c es\<^sub>c' x\<^sub>c'. (\<Gamma>\<^sub>c \<turnstile>\<^sub>c (es\<^sub>c, s\<^sub>c, x\<^sub>c) -es-((EvtEnt e\<^sub>c)\<sharp>k)\<rightarrow> (es\<^sub>c', s\<^sub>c, x\<^sub>c')) \<longrightarrow>(\<exists> es\<^sub>a' x\<^sub>a'. 
+                   (\<Gamma>\<^sub>a \<turnstile>\<^sub>a (es\<^sub>a, s\<^sub>a, x\<^sub>a) -es-((EvtEnt (\<eta> e\<^sub>c))\<sharp>k)\<rightarrow> (es\<^sub>a', s\<^sub>a, x\<^sub>a')) \<and> 
+                    (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c, x\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a', s\<^sub>a, x\<^sub>a'), R\<^sub>a, G\<^sub>a))) \<and>
+
+                  (\<forall>Pc es\<^sub>c' s\<^sub>c'. (\<Gamma>\<^sub>c \<turnstile>\<^sub>c (es\<^sub>c, s\<^sub>c, x\<^sub>c) -es-((Cmd Pc)\<sharp>k)\<rightarrow> (es\<^sub>c', s\<^sub>c', x\<^sub>c)) \<and> \<kappa> (x\<^sub>c k) Pc = None \<longrightarrow>
+                  (s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c \<and> (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c', x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)) \<and>
                   
-                  (\<forall>Pc es\<^sub>c' s\<^sub>c'. (\<Gamma>\<^sub>c \<turnstile>\<^sub>c (es\<^sub>c, s\<^sub>c, x\<^sub>c) -es-((Cmd Pc)\<sharp>k)\<rightarrow> (es\<^sub>c', s\<^sub>c, x\<^sub>c')) \<and> \<gamma> (x\<^sub>c k) Pc = Some Pa \<longrightarrow>
+                  (\<forall>Pc es\<^sub>c' s\<^sub>c' Pa. (\<Gamma>\<^sub>c \<turnstile>\<^sub>c (es\<^sub>c, s\<^sub>c, x\<^sub>c) -es-((Cmd Pc)\<sharp>k)\<rightarrow> (es\<^sub>c', s\<^sub>c', x\<^sub>c)) \<and> \<kappa> (x\<^sub>c k) Pc = Some Pa \<longrightarrow>
+                  \<eta> (x\<^sub>c k) = x\<^sub>a k \<and>
                   (\<exists>es\<^sub>a' s\<^sub>a'. (\<Gamma>\<^sub>a \<turnstile>\<^sub>a (es\<^sub>a, s\<^sub>a, x\<^sub>a) -es-((Cmd Pa)\<sharp>k)\<rightarrow> (es\<^sub>a', s\<^sub>a', x\<^sub>a)) \<and> (s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c \<and> (s\<^sub>a, s\<^sub>a') \<in> G\<^sub>a
-                  \<and> (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c', x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a', x\<^sub>a), R\<^sub>a, G\<^sub>a)))
+                  \<and> (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c', x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a', s\<^sub>a', x\<^sub>a), R\<^sub>a, G\<^sub>a))) \<and>
+      
+                  (\<forall>s\<^sub>c' s\<^sub>a' x\<^sub>c' x\<^sub>a'. ((s\<^sub>c, s\<^sub>c') \<in> R\<^sub>c \<union> Id \<and> (s\<^sub>a, s\<^sub>a') \<in>  R\<^sub>a \<union> Id) \<longrightarrow>( x\<^sub>c' k = x\<^sub>c k \<and> x\<^sub>a' k = x\<^sub>a k)
+                   \<longrightarrow>  (\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c', x\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a', x\<^sub>a'), R\<^sub>a, G\<^sub>a))
 
-                  ) ;
+                  )       
+                  \<rbrakk> \<Longrightarrow> (\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)"
 
-                   (\<forall>s\<^sub>c' s\<^sub>a'. ((s\<^sub>c, s\<^sub>c'), (s\<^sub>a, s\<^sub>a')) \<in> ((R\<^sub>c, R\<^sub>a \<union> Id)\<^sub>\<alpha>) \<longrightarrow> 
-                     (\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c', x\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a', x\<^sub>a'), R\<^sub>a, G\<^sub>a))      
-                  \<rbrakk> \<Longrightarrow> (\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)"
+definition es_sim_pre :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) esys, ('s\<^sub>c \<times> 's\<^sub>c) set, ('s\<^sub>c \<times> 's\<^sub>c) set, 
+                  ('s\<^sub>c \<times> 's\<^sub>a) set, ('s\<^sub>c \<times> 's\<^sub>a) set, 
+                  ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) event \<Rightarrow> ('l\<^sub>a,'k,'s\<^sub>a,'prog\<^sub>a) event, 
+                  ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) event \<Rightarrow> 'prog\<^sub>c \<Rightarrow> 'prog\<^sub>a option,
+                  'Env\<^sub>a, ('l\<^sub>a,'k,'s\<^sub>a,'prog\<^sub>a) esys, ('s\<^sub>a \<times> 's\<^sub>a) set, ('s\<^sub>a \<times> 's\<^sub>a) set] \<Rightarrow> bool" 
+  ("'(_,_,_,_')/ \<preceq>\<^sub>e\<^sub>s \<^sub>'(\<^sub>_\<^sub>;\<^sub>_\<^sub>;\<^sub>_\<^sub>;\<^sub>_\<^sub>') /'(_,_,_,_')" [81,81,81,81,81,81,81,81,81,81,81,81] 100)
+  where "(\<Gamma>\<^sub>c,es\<^sub>c,R\<^sub>c,G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<xi>\<^sub>;\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,es\<^sub>a,R\<^sub>a,G\<^sub>a) \<equiv> (\<forall>s\<^sub>c s\<^sub>a x\<^sub>c x\<^sub>a k. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> \<eta> (x\<^sub>c k) = x\<^sub>a k  
+         \<longrightarrow> (\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a))"
 
-inductive pes_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) pesconf, 
+lemma es_sim_init :"(\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a) \<Longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<alpha>"
+  by (erule es_sim.cases, simp_all)
+
+coinductive pes_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) pesconf, 
                   ('s\<^sub>c \<times> 's\<^sub>a) set, 
                   ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) event \<Rightarrow> ('l\<^sub>a,'k,'s\<^sub>a,'prog\<^sub>a) event, 
                   ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) event \<Rightarrow> 'prog\<^sub>c \<Rightarrow> 'prog\<^sub>a option,
@@ -286,14 +300,179 @@ inductive pes_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) pe
                   \<rbrakk> \<Longrightarrow> (\<Gamma>\<^sub>c, (pes\<^sub>c, s\<^sub>c, x\<^sub>c)) \<preceq>\<^sub>p\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (pes\<^sub>a, s\<^sub>a, x\<^sub>a))"
 
 
+lemma pes_sim_init :"(\<Gamma>\<^sub>c, (pes\<^sub>c, s\<^sub>c, x\<^sub>c)) \<preceq>\<^sub>p\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (pes\<^sub>a, s\<^sub>a, x\<^sub>a)) \<Longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<alpha>"
+  by (erule pes_sim.cases, simp_all)
 
-lemma KKV: "\<lbrakk>\<forall>k. (\<Gamma>\<^sub>c, (pes\<^sub>c k, s\<^sub>c, x\<^sub>c), (R\<^sub>c k), (G\<^sub>c k)) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (pes\<^sub>a k, s\<^sub>a, x\<^sub>a), (R\<^sub>a k), (G\<^sub>a k));
+lemma Pes_Sound_help1: "\<lbrakk>(\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a);
+       \<Gamma>\<^sub>c \<turnstile>\<^sub>c (es\<^sub>c, s\<^sub>c, x\<^sub>c) -es-((EvtEnt e\<^sub>c)\<sharp>k)\<rightarrow> (es\<^sub>c', s\<^sub>c, x\<^sub>c')\<rbrakk> \<Longrightarrow> \<exists> es\<^sub>a' x\<^sub>a'. 
+                   (\<Gamma>\<^sub>a \<turnstile>\<^sub>a (es\<^sub>a, s\<^sub>a, x\<^sub>a) -es-((EvtEnt (\<eta> e\<^sub>c))\<sharp>k)\<rightarrow> (es\<^sub>a', s\<^sub>a, x\<^sub>a')) \<and> 
+                    (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c, x\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a', s\<^sub>a, x\<^sub>a'), R\<^sub>a, G\<^sub>a)"
+  by (erule es_sim.cases, simp)
+
+lemma Pes_Sound_help2: "\<lbrakk>(\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a);
+      (s\<^sub>c, s\<^sub>c') \<in> R\<^sub>c \<union> Id \<and> (s\<^sub>a, s\<^sub>a') \<in>  R\<^sub>a \<union> Id; x\<^sub>c' k = x\<^sub>c k \<and> x\<^sub>a' k = x\<^sub>a k\<rbrakk> \<Longrightarrow>
+      (\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c', x\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a', x\<^sub>a'), R\<^sub>a, G\<^sub>a)"
+  by (erule es_sim.cases, simp)
+
+lemma Pes_Sound_help3: "\<lbrakk>(\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a);
+      (\<Gamma>\<^sub>c \<turnstile>\<^sub>c (es\<^sub>c, s\<^sub>c, x\<^sub>c) -es-((Cmd Pc)\<sharp>k)\<rightarrow> (es\<^sub>c', s\<^sub>c', x\<^sub>c)) \<and> \<kappa> (x\<^sub>c k) Pc = None\<rbrakk> \<Longrightarrow>
+      (s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c \<and> (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c', x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)"
+  by (erule es_sim.cases, simp)
+
+lemma Pes_Sound_help4: "\<lbrakk>(\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a);
+      (\<Gamma>\<^sub>c \<turnstile>\<^sub>c (es\<^sub>c, s\<^sub>c, x\<^sub>c) -es-((Cmd Pc)\<sharp>k)\<rightarrow> (es\<^sub>c', s\<^sub>c', x\<^sub>c)) \<and> \<kappa> (x\<^sub>c k) Pc = Some Pa\<rbrakk> \<Longrightarrow>
+      \<eta> (x\<^sub>c k) = x\<^sub>a k \<and>(\<exists>es\<^sub>a' s\<^sub>a'. (\<Gamma>\<^sub>a \<turnstile>\<^sub>a (es\<^sub>a, s\<^sub>a, x\<^sub>a) -es-((Cmd Pa)\<sharp>k)\<rightarrow> (es\<^sub>a', s\<^sub>a', x\<^sub>a)) \<and> 
+      (s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c \<and> (s\<^sub>a, s\<^sub>a') \<in> G\<^sub>a \<and> (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c', x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a', s\<^sub>a', x\<^sub>a), R\<^sub>a, G\<^sub>a))"
+  by (erule es_sim.cases, simp)
+
+lemma Pes_Sound_lemma1: " \<lbrakk>\<forall>k. (\<Gamma>\<^sub>c,(pes\<^sub>c k, s\<^sub>c, x\<^sub>c),R\<^sub>c k,G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,(pes\<^sub>a k, s\<^sub>a, x\<^sub>a),R\<^sub>a k,G\<^sub>a k);
+      \<forall>i j. i \<noteq> j \<longrightarrow> G\<^sub>c i \<subseteq> R\<^sub>c j \<and> G\<^sub>a i \<subseteq> R\<^sub>a j; \<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c, s\<^sub>c, x\<^sub>c) -pes-EvtEnt e\<^sub>c\<sharp>k\<rightarrow> (pes\<^sub>c', s\<^sub>c, x\<^sub>c')\<rbrakk>
+       \<Longrightarrow> \<exists>pes\<^sub>a' x\<^sub>a'.
+            (\<Gamma>\<^sub>a \<turnstile>\<^sub>a (pes\<^sub>a, s\<^sub>a, x\<^sub>a) -pes-EvtEnt (\<eta> e\<^sub>c)\<sharp>k\<rightarrow> (pes\<^sub>a', s\<^sub>a, x\<^sub>a')) \<and>
+            (\<forall>k. (\<Gamma>\<^sub>c,(pes\<^sub>c' k, s\<^sub>c, x\<^sub>c'),R\<^sub>c k,G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,(pes\<^sub>a' k, s\<^sub>a, x\<^sub>a'),R\<^sub>a k,G\<^sub>a k))"
+proof-
+  assume a0: "\<forall>k. (\<Gamma>\<^sub>c,(pes\<^sub>c k, s\<^sub>c, x\<^sub>c),R\<^sub>c k,G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,(pes\<^sub>a k, s\<^sub>a, x\<^sub>a),R\<^sub>a k,G\<^sub>a k)"
+     and a1: "\<forall>i j. i \<noteq> j \<longrightarrow> G\<^sub>c i \<subseteq> R\<^sub>c j \<and> G\<^sub>a i \<subseteq> R\<^sub>a j"
+     and a2: "\<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c, s\<^sub>c, x\<^sub>c) -pes-EvtEnt e\<^sub>c\<sharp>k\<rightarrow> (pes\<^sub>c', s\<^sub>c, x\<^sub>c')"
+
+  from a2 have "\<exists>es\<^sub>c'. (\<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c k, s\<^sub>c, x\<^sub>c) -es-(EvtEnt e\<^sub>c\<sharp>k)\<rightarrow> (es\<^sub>c', s\<^sub>c, x\<^sub>c'))\<and> pes\<^sub>c' = (pes\<^sub>c(k := es\<^sub>c'))"
+    by (simp add: Event\<^sub>c.pestran_estran)
+  then obtain es\<^sub>c' where a3:"(\<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c k, s\<^sub>c, x\<^sub>c) -es-(EvtEnt e\<^sub>c\<sharp>k)\<rightarrow> (es\<^sub>c', s\<^sub>c, x\<^sub>c'))\<and> pes\<^sub>c' = (pes\<^sub>c(k := es\<^sub>c'))"
+    by blast
+  then have a4: "\<forall>k'. k' \<noteq> k \<longrightarrow> x\<^sub>c k' = x\<^sub>c' k'"
+    by (meson Event\<^sub>c.entevt_ines_notchg_otherx)
+  from a0 a3 have "\<exists>es\<^sub>a' x\<^sub>a'. (\<Gamma>\<^sub>a \<turnstile>\<^sub>a (pes\<^sub>a k, s\<^sub>a, x\<^sub>a) -es-(EvtEnt (\<eta> e\<^sub>c)\<sharp>k)\<rightarrow> (es\<^sub>a', s\<^sub>a, x\<^sub>a')) 
+                    \<and> (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c, x\<^sub>c'), R\<^sub>c k, G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a', s\<^sub>a, x\<^sub>a'), R\<^sub>a k, G\<^sub>a k)"
+    by (meson Pes_Sound_help1)
+  then obtain es\<^sub>a' x\<^sub>a' where a5: "(\<Gamma>\<^sub>a \<turnstile>\<^sub>a (pes\<^sub>a k, s\<^sub>a, x\<^sub>a) -es-(EvtEnt (\<eta> e\<^sub>c)\<sharp>k)\<rightarrow> (es\<^sub>a', s\<^sub>a, x\<^sub>a'))
+  \<and> (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c, x\<^sub>c'), R\<^sub>c k, G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a', s\<^sub>a, x\<^sub>a'), R\<^sub>a k, G\<^sub>a k)" by blast
+  then have a6: "\<forall>k'. k' \<noteq> k \<longrightarrow> x\<^sub>a k' = x\<^sub>a' k'"
+    by (meson Event\<^sub>a.entevt_ines_notchg_otherx)
+  from a5 have a7: "\<Gamma>\<^sub>a \<turnstile>\<^sub>a (pes\<^sub>a, s\<^sub>a, x\<^sub>a) -pes-EvtEnt (\<eta> e\<^sub>c)\<sharp>k\<rightarrow> (pes\<^sub>a(k := es\<^sub>a'), s\<^sub>a, x\<^sub>a')"
+    by (meson Event\<^sub>a.pestran.intros a4)
+  have "\<forall>j. (\<Gamma>\<^sub>c,(pes\<^sub>c' j, s\<^sub>c, x\<^sub>c'),R\<^sub>c j,G\<^sub>c j) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, ((pes\<^sub>a(k := es\<^sub>a')) j, s\<^sub>a, x\<^sub>a'),R\<^sub>a j,G\<^sub>a j)"
+  proof-
+    {
+      fix j
+      have "(\<Gamma>\<^sub>c,(pes\<^sub>c' j, s\<^sub>c, x\<^sub>c'),R\<^sub>c j,G\<^sub>c j) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, ((pes\<^sub>a(k := es\<^sub>a')) j, s\<^sub>a, x\<^sub>a'),R\<^sub>a j,G\<^sub>a j)"
+      proof(case_tac "j = k")
+        assume "j = k"
+        with a3 a5 show ?thesis by simp
+      next
+        assume b0: "j \<noteq> k"
+        with a0 a3 a4 have b1: "(\<Gamma>\<^sub>c,(pes\<^sub>c' j, s\<^sub>c, x\<^sub>c),R\<^sub>c j,G\<^sub>c j) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,((pes\<^sub>a(k := es\<^sub>a')) j, s\<^sub>a, x\<^sub>a),R\<^sub>a j,G\<^sub>a j)"
+          by simp
+        have b2: "(s\<^sub>c, s\<^sub>c) \<in> R\<^sub>c j \<union> Id \<and> (s\<^sub>a, s\<^sub>a) \<in> R\<^sub>a j \<union> Id" by blast
+        from b0 a4 a6 have "x\<^sub>c j = x\<^sub>c' j \<and> x\<^sub>a j = x\<^sub>a' j" by auto
+        with b1 b2 show ?thesis
+          by (metis (full_types) Pes_Sound_help2)
+      qed 
+    }
+    then show ?thesis by auto
+  qed
+
+  with a7 show ?thesis by blast
+qed
+
+lemma Pes_Sound_lemma2: "\<lbrakk>\<forall>k. (\<Gamma>\<^sub>c,(pes\<^sub>c k, s\<^sub>c, x\<^sub>c),R\<^sub>c k,G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,(pes\<^sub>a k, s\<^sub>a, x\<^sub>a),R\<^sub>a k,G\<^sub>a k);
+      \<forall>i j. i \<noteq> j \<longrightarrow> G\<^sub>c i \<subseteq> R\<^sub>c j \<and> G\<^sub>a i \<subseteq> R\<^sub>a j; \<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c, s\<^sub>c, x\<^sub>c) -pes-Cmd Pc\<sharp>k\<rightarrow> (pes\<^sub>c', s\<^sub>c', x\<^sub>c);
+      \<kappa> (x\<^sub>c k) Pc = None\<rbrakk> \<Longrightarrow> \<forall>k. (\<Gamma>\<^sub>c,(pes\<^sub>c' k, s\<^sub>c', x\<^sub>c),R\<^sub>c k,G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,(pes\<^sub>a k, s\<^sub>a, x\<^sub>a),R\<^sub>a k,G\<^sub>a k)"
+proof-
+  assume a0: "\<forall>k. (\<Gamma>\<^sub>c,(pes\<^sub>c k, s\<^sub>c, x\<^sub>c),R\<^sub>c k,G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,(pes\<^sub>a k, s\<^sub>a, x\<^sub>a),R\<^sub>a k,G\<^sub>a k)"
+     and a1: "\<forall>i j. i \<noteq> j \<longrightarrow> G\<^sub>c i \<subseteq> R\<^sub>c j \<and> G\<^sub>a i \<subseteq> R\<^sub>a j"
+     and a2: "\<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c, s\<^sub>c, x\<^sub>c) -pes-Cmd Pc\<sharp>k\<rightarrow> (pes\<^sub>c', s\<^sub>c', x\<^sub>c)"
+     and a3: "\<kappa> (x\<^sub>c k) Pc = None"
+
+  from a2 have "\<exists>es\<^sub>c'. (\<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c k, s\<^sub>c, x\<^sub>c) -es-Cmd Pc\<sharp>k\<rightarrow> (pes\<^sub>c' k, s\<^sub>c', x\<^sub>c)) \<and> pes\<^sub>c' = pes\<^sub>c(k :=es\<^sub>c')"
+    using Event\<^sub>c.pestran_estran by fastforce
+  then obtain es\<^sub>c' where a4: "(\<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c k, s\<^sub>c, x\<^sub>c) -es-Cmd Pc\<sharp>k\<rightarrow> (pes\<^sub>c' k, s\<^sub>c', x\<^sub>c)) \<and> pes\<^sub>c' = pes\<^sub>c(k :=es\<^sub>c')"
+    by auto
+  with a0 a3 have a5: "(s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c k \<and> (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c', x\<^sub>c), R\<^sub>c k, G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (pes\<^sub>a k, s\<^sub>a, x\<^sub>a), R\<^sub>a k, G\<^sub>a k)"
+    by (metis Pes_Sound_help3 fun_upd_same)
+  show ?thesis
+  proof-
+    {
+      fix j
+      have "(\<Gamma>\<^sub>c,(pes\<^sub>c' j, s\<^sub>c', x\<^sub>c),R\<^sub>c j,G\<^sub>c j) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,(pes\<^sub>a j, s\<^sub>a, x\<^sub>a),R\<^sub>a j,G\<^sub>a j)"
+      proof(case_tac "j = k")
+        assume "j = k"
+        with a4 a5 show ?thesis by force
+      next
+        assume b0: "j \<noteq> k"
+        with a0 a2 have b1: "(\<Gamma>\<^sub>c,(pes\<^sub>c' j, s\<^sub>c, x\<^sub>c),R\<^sub>c j,G\<^sub>c j) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,(pes\<^sub>a j, s\<^sub>a, x\<^sub>a),R\<^sub>a j,G\<^sub>a j)"
+          using Event\<^sub>c.pestran_estran by fastforce
+        from a1 a5 b0 have b2: "(s\<^sub>c, s\<^sub>c') \<in> R\<^sub>c j \<union> Id \<and> (s\<^sub>a, s\<^sub>a) \<in> R\<^sub>a j \<union> Id" 
+          by (metis IdI UnI1 UnI2 subsetD)
+        with b1 show ?thesis by (metis Pes_Sound_help2)
+      qed
+    }
+    then show ?thesis by auto
+  qed
+qed
+
+lemma Pes_Sound_lemma3: "\<lbrakk>\<forall>k. (\<Gamma>\<^sub>c,(pes\<^sub>c k, s\<^sub>c, x\<^sub>c),R\<^sub>c k,G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,(pes\<^sub>a k, s\<^sub>a, x\<^sub>a),R\<^sub>a k,G\<^sub>a k);
+       \<forall>i j. i \<noteq> j \<longrightarrow> G\<^sub>c i \<subseteq> R\<^sub>c j \<and> G\<^sub>a i \<subseteq> R\<^sub>a j;\<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c, s\<^sub>c, x\<^sub>c) -pes-Cmd Pc\<sharp>k\<rightarrow> (pes\<^sub>c', s\<^sub>c', x\<^sub>c);
+        \<kappa> (x\<^sub>c k) Pc = Some Pa\<rbrakk> \<Longrightarrow>
+        \<exists>pes\<^sub>a' s\<^sub>a'. (\<Gamma>\<^sub>a \<turnstile>\<^sub>a (pes\<^sub>a, s\<^sub>a, x\<^sub>a) -pes-Cmd Pa\<sharp>k\<rightarrow> (pes\<^sub>a', s\<^sub>a', x\<^sub>a)) \<and> \<eta> (x\<^sub>c k) = x\<^sub>a k \<and>
+        (\<forall>k. (\<Gamma>\<^sub>c,(pes\<^sub>c' k, s\<^sub>c', x\<^sub>c),R\<^sub>c k,G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,(pes\<^sub>a' k, s\<^sub>a', x\<^sub>a),R\<^sub>a k,G\<^sub>a k))"
+proof-
+  assume a0: "\<forall>k. (\<Gamma>\<^sub>c,(pes\<^sub>c k, s\<^sub>c, x\<^sub>c),R\<^sub>c k,G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,(pes\<^sub>a k, s\<^sub>a, x\<^sub>a),R\<^sub>a k,G\<^sub>a k)"
+     and a1: "\<forall>i j. i \<noteq> j \<longrightarrow> G\<^sub>c i \<subseteq> R\<^sub>c j \<and> G\<^sub>a i \<subseteq> R\<^sub>a j"
+     and a2: "\<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c, s\<^sub>c, x\<^sub>c) -pes-Cmd Pc\<sharp>k\<rightarrow> (pes\<^sub>c', s\<^sub>c', x\<^sub>c)"
+     and a3: "\<kappa> (x\<^sub>c k) Pc = Some Pa"
+
+  from a2 have "\<exists>es\<^sub>c'. (\<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c k, s\<^sub>c, x\<^sub>c) -es-Cmd Pc\<sharp>k\<rightarrow> (pes\<^sub>c' k, s\<^sub>c', x\<^sub>c)) \<and> pes\<^sub>c' = pes\<^sub>c(k :=es\<^sub>c')"
+    by (metis Event\<^sub>c.pestran_estran fun_upd_same)
+  then obtain es\<^sub>c' where a4: "(\<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c k, s\<^sub>c, x\<^sub>c) -es-Cmd Pc\<sharp>k\<rightarrow> (pes\<^sub>c' k, s\<^sub>c', x\<^sub>c)) \<and> pes\<^sub>c' = pes\<^sub>c(k :=es\<^sub>c')"
+    by auto
+  with a0 a3 have "  \<eta> (x\<^sub>c k) = x\<^sub>a k \<and> (\<exists>es\<^sub>a' s\<^sub>a'. (\<Gamma>\<^sub>a \<turnstile>\<^sub>a (pes\<^sub>a k, s\<^sub>a, x\<^sub>a) -es-((Cmd Pa)\<sharp>k)\<rightarrow> (es\<^sub>a', s\<^sub>a', x\<^sub>a)) 
+                     \<and> (s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c k \<and> (s\<^sub>a, s\<^sub>a') \<in> G\<^sub>a k 
+                     \<and> (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c', x\<^sub>c), R\<^sub>c k, G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a', s\<^sub>a', x\<^sub>a), R\<^sub>a k, G\<^sub>a k))"
+    using Pes_Sound_help4 by fastforce
+  then obtain es\<^sub>a' s\<^sub>a' where a5: "(\<Gamma>\<^sub>a \<turnstile>\<^sub>a (pes\<^sub>a k, s\<^sub>a, x\<^sub>a) -es-((Cmd Pa)\<sharp>k)\<rightarrow> (es\<^sub>a', s\<^sub>a', x\<^sub>a)) 
+                      \<and> (s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c k \<and> (s\<^sub>a, s\<^sub>a') \<in> G\<^sub>a k \<and> \<eta> (x\<^sub>c k) = x\<^sub>a k \<and> 
+                      (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c', x\<^sub>c), R\<^sub>c k, G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a', s\<^sub>a', x\<^sub>a), R\<^sub>a k, G\<^sub>a k)"
+    by auto
+  then have a6: "(\<Gamma>\<^sub>a \<turnstile>\<^sub>a (pes\<^sub>a, s\<^sub>a, x\<^sub>a) -pes-((Cmd Pa)\<sharp>k)\<rightarrow> (pes\<^sub>a (k :=es\<^sub>a'), s\<^sub>a', x\<^sub>a))"
+    by (simp add: Event\<^sub>a.pestran.intros)
+  show ?thesis
+  proof-
+    {
+      fix j
+      have "(\<Gamma>\<^sub>c,(pes\<^sub>c' j, s\<^sub>c', x\<^sub>c),R\<^sub>c j,G\<^sub>c j) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,((pes\<^sub>a (k :=es\<^sub>a')) j, s\<^sub>a', x\<^sub>a),R\<^sub>a j,G\<^sub>a j)"
+      proof(case_tac "j = k")
+        assume "j = k"
+        with a4 a5 show ?thesis by simp
+      next
+        assume b0: "j \<noteq> k"
+        with a0 a2 have b1: "(\<Gamma>\<^sub>c,(pes\<^sub>c j, s\<^sub>c, x\<^sub>c),R\<^sub>c j,G\<^sub>c j) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a,((pes\<^sub>a (k :=es\<^sub>a')) j, s\<^sub>a, x\<^sub>a),R\<^sub>a j,G\<^sub>a j)"
+          by simp
+        from a1 a5 b0 have b2: "(s\<^sub>c, s\<^sub>c') \<in> R\<^sub>c j \<union> Id \<and> (s\<^sub>a, s\<^sub>a') \<in> R\<^sub>a j \<union> Id"
+          by (metis in_mono sup.cobounded1)
+        with a4 b0 b1 show ?thesis
+          using Pes_Sound_help2  by fastforce
+      qed
+    }
+    with a5 a6 show ?thesis  by blast
+  qed
+qed
+
+lemma Pes_rule : "\<lbrakk>\<forall>k. (\<Gamma>\<^sub>c, (pes\<^sub>c k, s\<^sub>c, x\<^sub>c), (R\<^sub>c k), (G\<^sub>c k)) \<preceq>\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (pes\<^sub>a k, s\<^sub>a, x\<^sub>a), (R\<^sub>a k), (G\<^sub>a k));
              \<forall>i j. i \<noteq> j \<longrightarrow> G\<^sub>c i \<subseteq> R\<^sub>c j \<and> G\<^sub>a i \<subseteq> R\<^sub>a j\<rbrakk> \<Longrightarrow> (\<Gamma>\<^sub>c, (pes\<^sub>c, s\<^sub>c, x\<^sub>c)) \<preceq>\<^sub>p\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<kappa>\<^sub>) (\<Gamma>\<^sub>a, (pes\<^sub>a, s\<^sub>a, x\<^sub>a))"
-(*
-inductive None_event :: "('l\<^sub>c, 'k, 's\<^sub>c, 'prog\<^sub>c) event \<Rightarrow> ('s\<^sub>c \<times> 's\<^sub>a) set \<Rightarrow> ('s\<^sub>c \<times> 's\<^sub>a) set \<Rightarrow> bool"
-  where "None_event e \<xi> \<gamma> = (\<forall>s\<^sub>c s\<^sub>a. 
-         )"
-*)
+  apply (coinduction arbitrary: pes\<^sub>c s\<^sub>c x\<^sub>c pes\<^sub>a s\<^sub>a x\<^sub>a, clarsimp)
+  apply (rule conjI)
+   apply (meson es_sim_init)
+  apply (rule conjI)
+   apply (metis Pes_Sound_lemma1)
+  apply (rule conjI)
+   apply (metis Pes_Sound_lemma2)
+  apply clarsimp
+  apply (drule_tac Pc = Pc and k = k and pes\<^sub>c' = pes\<^sub>c' and s\<^sub>c' = s\<^sub>c' and Pa = Pa in Pes_Sound_lemma3)
+     apply meson
+    apply blast
+   apply blast
+  by blast
+
 end
  
 
