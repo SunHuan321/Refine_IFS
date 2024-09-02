@@ -189,6 +189,11 @@ done
 
 
 subsubsection \<open>Events\<close>
+lemma basicevt_tran: "\<lbrakk>P \<noteq> fin_com; s \<in> g \<rbrakk> \<Longrightarrow>
+                      \<Gamma> \<turnstile> (BasicEvent (l, g, P), s, x) -et-(EvtEnt (BasicEvent (l, g, P)))\<sharp>k\<rightarrow> 
+                      ((AnonyEvent P), s, x(k := BasicEvent (l, g, P)))"
+  by (simp add: EventEntry body_def guard_def)
+
 lemma ent_spec1: "\<Gamma> \<turnstile> (ev, s, x) -et-(EvtEnt be)\<sharp>k\<rightarrow> (e2, s1, x1) \<Longrightarrow> ev = be" 
   apply(rule etran.cases)
   apply(simp)
@@ -261,6 +266,9 @@ done
 
 lemma evt_not_eq_in_tran2 [simp]: "\<not>(\<exists>et. \<Gamma> \<turnstile> (P,s,x) -et-et\<rightarrow> (P,t,y))" by simp
 
+lemma basicevt_not_tran_fin: "\<Gamma> \<turnstile> (e, s, x) -et-EvtEnt e\<sharp>k\<rightarrow> (e', s, x') \<Longrightarrow> e' \<noteq> AnonyEvent fin_com"
+  apply (erule etran.cases, simp_all)
+  by (simp add: get_actk_def)
 
 subsubsection \<open>Event Systems\<close>
 
