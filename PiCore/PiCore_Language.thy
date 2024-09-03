@@ -10,11 +10,15 @@ type_synonym 's guard = "'s set"
 (* 'prog: the type of program command *)
 type_synonym ('l,'s,'prog) event' = "'l \<times> ('s guard \<times> 'prog)"
 
+definition label :: "('l,'s,'prog) event' \<Rightarrow> 'l" where
+  "label ev \<equiv> fst ev"
+
 definition guard :: "('l,'s,'prog) event' \<Rightarrow> 's guard" where
   "guard ev \<equiv> fst (snd ev)"
 
 definition body :: "('l,'s,'prog) event' \<Rightarrow> 'prog" where
   "body ev \<equiv> snd (snd ev)"
+
 
 datatype ('l,'k,'s,'prog) event =
       AnonyEvent "'prog" 
@@ -35,6 +39,14 @@ primrec is_basicevt :: "('l,'k,'s,'prog) event \<Rightarrow> bool"
 primrec is_anonyevt :: "('l,'k,'s,'prog) event \<Rightarrow> bool"
   where "is_anonyevt (AnonyEvent _) = True" |
         "is_anonyevt (BasicEvent _) = False"
+
+primrec label_e :: "('l,'k,'s,'prog) event \<Rightarrow> 'l option"
+  where "label_e (AnonyEvent _) = None" |
+        "label_e (BasicEvent ev) = Some (label ev)"
+
+primrec body_e :: "('l,'k,'s,'prog) event \<Rightarrow> 'prog option"
+  where "body_e (AnonyEvent P) = None" |
+        "body_e (BasicEvent ev) = Some (body ev)"
 
 lemma basicevt_isnot_anony: "is_basicevt e \<Longrightarrow> \<not> is_anonyevt e"
   by (metis event.exhaust is_anonyevt.simps(2) is_basicevt.simps(1)) 

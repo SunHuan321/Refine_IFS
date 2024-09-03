@@ -121,6 +121,9 @@ lemma tl_zero[rule_format]:
 
 subsubsection \<open>Events\<close>
 
+lemma last_length: "((a#xs)!(length xs))=last (a#xs)"
+  by (induct xs) auto
+
 lemma cpts_e_not_empty [simp]:"[] \<notin> cpts_ev \<Gamma>"
 apply(force elim:cpts_ev.cases)
 done
@@ -879,6 +882,48 @@ lemma evtsys_all_es_in_cpts_anony:
       then show ?thesis by auto
       qed
   qed
+
+lemma evtseq_all_es_in_cpts:
+  "\<lbrakk>esl\<in>cpts_es \<Gamma>;  getspc_es (esl!0) = EvtSeq e esys; j \<le> length esl; \<forall>i. i < j \<longrightarrow> getspc_es (esl!i) \<noteq> esys;
+    i < j\<rbrakk> \<Longrightarrow> \<exists>e'. getspc_es (esl!i) = EvtSeq e' esys"
+  apply (induct i, simp)
+  apply (subgoal_tac "\<exists>e. getspc_es (esl ! i) = EvtSeq e esys")
+  using evtseq_next_in_cpts less_le_trans apply blast
+  using Suc_lessD by blast
+
+lemma evtseq_all_es_in_cpts_anony:
+  "\<lbrakk>esl\<in>cpts_es \<Gamma>;  getspc_es (esl!0) = EvtSeq e esys; is_anonyevt e; \<forall>i. Suc i < length esl 
+   \<longrightarrow> getspc_es (esl!i) \<noteq> esys; Suc i < length esl\<rbrakk> \<Longrightarrow> \<exists>e'. getspc_es (esl!i) = EvtSeq e' esys \<and> is_anonyevt e'"
+  apply (induct i, simp)
+  apply (subgoal_tac "\<exists>e'. getspc_es (esl ! i) = EvtSeq e' esys \<and> is_anonyevt e'")
+  using Suc_lessD evtseq_next_in_cpts_anony apply blast
+  using Suc_lessD by blast
+
+lemma evtseq_all_es_in_cpts_anony1:
+  "\<lbrakk>esl\<in>cpts_es \<Gamma>; getspc_es (esl!0) = EvtSeq e esys; is_anonyevt e; \<forall>i. Suc i < length esl 
+   \<longrightarrow> getspc_es (esl!i) \<noteq> esys; Suc i < length esl\<rbrakk> \<Longrightarrow> \<nexists>e. \<Gamma> \<turnstile> esl ! i -es-EvtEnt e\<sharp>k\<rightarrow> esl ! Suc i"
+  by (meson evtseq_all_es_in_cpts_anony evtseq_no_evtent2)
+  
+lemma evtseq_all_es_in_cpts_anony2:
+  "\<lbrakk>esl\<in>cpts_es \<Gamma>; j < length esl; getspc_es (esl!j) = EvtSeq e esys; is_anonyevt e; \<forall>i. Suc i < length esl 
+   \<longrightarrow> getspc_es (esl!i) \<noteq> esys; i \<ge> j; Suc i < length esl\<rbrakk> \<Longrightarrow> \<nexists>e. \<Gamma> \<turnstile> esl ! i -es-EvtEnt e\<sharp>k\<rightarrow> esl ! Suc i"
+proof-
+  assume p0: "esl\<in>cpts_es \<Gamma>"
+     and p1: "j < length esl"
+     and p2: "getspc_es (esl!j) = EvtSeq e esys"
+     and p3: "is_anonyevt e"
+     and p4: "\<forall>i. Suc i < length esl \<longrightarrow> getspc_es (esl!i) \<noteq> esys"
+     and p5: "i \<ge> j"
+     and p6: "Suc i < length esl"
+  let ?esl1 = "drop j esl"
+  from p0 p1 have a0: "?esl1 \<in> cpts_es \<Gamma>" by (simp add: cpts_es_dropi2)
+  from p1 p2 have a1: "getspc_es (?esl1!0) = EvtSeq e esys" by (simp add: less_or_eq_imp_le)
+  from p1 p5 have a2: "esl ! i = ?esl1 ! (i - j)" by (simp add: less_imp_le p1 p5)
+  from p5 p6 have a3: "Suc (i - j) < length ?esl1" by auto
+  from p4 have a4: "\<forall>i. Suc i < length ?esl1 \<longrightarrow> getspc_es (?esl1!i) \<noteq> esys" by simp
+  with a0 a1 a2 a3 p3 show ?thesis using evtseq_all_es_in_cpts_anony1[of ?esl1 \<Gamma> e esys "i - j"]
+    by (metis evtseq_all_es_in_cpts_anony evtseq_no_evtent2)
+qed
 
 lemma not_anonyevt_none_in_evtseq:
     "\<lbrakk>esl\<in>cpts_es \<Gamma>; esl = (EvtSeq e es,s1,x1)#(es,s2,x2)#xs \<rbrakk> \<Longrightarrow> e \<noteq> AnonyEvent fin_com"

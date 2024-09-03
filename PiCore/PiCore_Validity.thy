@@ -16,10 +16,12 @@ and cpts_of_p :: "'Env \<Rightarrow> 'prog \<Rightarrow> 's \<Rightarrow> (('s,'
 +
 fixes prog_validity :: "'Env \<Rightarrow> 'prog \<Rightarrow> 's set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> 's set \<Rightarrow> bool" 
                  ("_ \<Turnstile> _ sat\<^sub>p [_, _, _, _]" [60,60,0,0,0,0] 45)
+fixes ann_preserves_p :: "'prog \<Rightarrow> 's \<Rightarrow> bool"
 fixes assume_p :: "'Env \<Rightarrow> ('s set \<times> ('s \<times> 's) set) \<Rightarrow> (('s,'prog) pconfs) set"
 fixes commit_p :: "'Env \<Rightarrow> (('s \<times> 's) set \<times> 's set) \<Rightarrow> (('s,'prog) pconfs) set"
+fixes preserves_p :: " (('s,'prog) pconfs) set"
 assumes prog_validity_def: "\<Gamma> \<Turnstile> P sat\<^sub>p [pre, rely, guar, post] \<Longrightarrow> 
-   \<forall>s. cpts_of_p \<Gamma> P s \<inter> assume_p \<Gamma> (pre, rely) \<subseteq> commit_p \<Gamma> (guar, post)"
+   \<forall>s. cpts_of_p \<Gamma> P s \<inter> assume_p \<Gamma> (pre, rely) \<subseteq> commit_p \<Gamma> (guar, post) \<inter> preserves_p"
 (*assumes assume_p_def: "assume_p \<Gamma> \<equiv> \<lambda>(pre, rely). {c. gets_p (c!0) \<in> pre \<and> (\<forall>i. Suc i<length c \<longrightarrow> 
                \<Gamma> \<turnstile> c!i -pe\<rightarrow> c!(Suc i) \<longrightarrow> (gets_p (c!i), gets_p (c!Suc i)) \<in> rely)}"*)
 assumes assume_p_def: "gets_p (c!0) \<in> pre \<and> (\<forall>i. Suc i<length c \<longrightarrow> 
@@ -31,7 +33,14 @@ assumes assume_p_def: "gets_p (c!0) \<in> pre \<and> (\<forall>i. Suc i<length c
 assumes commit_p_def: "c \<in> commit_p \<Gamma> (guar, post) \<Longrightarrow> (\<forall>i. Suc i<length c \<longrightarrow> 
                \<Gamma> \<turnstile> c!i -c\<rightarrow> c!(Suc i) \<longrightarrow> (gets_p (c!i), gets_p (c!Suc i)) \<in> guar) \<and> 
                (getspc_p (last c) = fin_com \<longrightarrow> gets_p (last c) \<in> post)"
+assumes preserves_p_def: "c \<in> preserves_p \<Longrightarrow> \<forall>i. i < length c \<longrightarrow> 
+                          ann_preserves_p (getspc_p (c!i)) (gets_p (c!i))"
+assumes ann_preserves_fincom : "ann_preserves_p fin_com s = True"
 begin
+
+primrec ann_preserves_e :: "('l,'k,'s,'prog) event \<Rightarrow> 's \<Rightarrow> bool"
+  where "ann_preserves_e (AnonyEvent P) s = (ann_preserves_p P s)" |
+        "ann_preserves_e (BasicEvent _) s = True"
 
 definition assume_e :: "'Env \<Rightarrow> ('s set \<times> ('s \<times> 's) set) \<Rightarrow> (('l,'k,'s,'prog) econfs) set" where
   "assume_e \<Gamma> \<equiv> \<lambda>(pre, rely). {c. gets_e (c!0) \<in> pre \<and> (\<forall>i. Suc i<length c \<longrightarrow> 
@@ -42,10 +51,17 @@ definition commit_e :: "'Env \<Rightarrow> (('s \<times> 's) set \<times> 's set
                (\<exists>t. \<Gamma> \<turnstile> c!i -et-t\<rightarrow> c!(Suc i)) \<longrightarrow> (gets_e (c!i), gets_e (c!Suc i)) \<in> guar) \<and> 
                (getspc_e (last c) = AnonyEvent fin_com \<longrightarrow> gets_e (last c) \<in> post)}"
 
+definition preserves_e :: "(('l,'k,'s,'prog) econfs) set" where
+  "preserves_e \<equiv> {c. (\<forall>i. i < length c \<longrightarrow> ann_preserves_e (getspc_e (c!i)) (gets_e (c!i)))}"
+
 definition evt_validity :: "'Env \<Rightarrow> ('l,'k,'s,'prog) event \<Rightarrow> 's set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> 's set \<Rightarrow> bool" 
                  ("_ \<Turnstile> _ sat\<^sub>e [_, _, _, _]" [60,60,0,0,0,0] 45) where
   "\<Gamma> \<Turnstile> Evt sat\<^sub>e [pre, rely, guar, post] \<equiv> 
-   \<forall>s x. (cpts_of_ev \<Gamma> Evt s x) \<inter> assume_e \<Gamma> (pre, rely) \<subseteq> commit_e \<Gamma> (guar, post)"
+   \<forall>s x. (cpts_of_ev \<Gamma> Evt s x) \<inter> assume_e \<Gamma> (pre, rely) \<subseteq> commit_e \<Gamma> (guar, post) \<inter> preserves_e"
+
+primrec ann_preserves_es :: "('l,'k,'s,'prog) esys \<Rightarrow> 's \<Rightarrow> bool"
+  where "ann_preserves_es (EvtSeq e es) s = (ann_preserves_e e s)" |
+        "ann_preserves_es (EvtSys es) s = True"
 
 definition assume_es :: "'Env \<Rightarrow> ('s set \<times> ('s \<times> 's) set) \<Rightarrow> (('l,'k,'s,'prog) esconfs) set" where
   "assume_es \<Gamma> \<equiv> \<lambda>(pre, rely). {c. gets_es (c!0) \<in> pre \<and> (\<forall>i. Suc i<length c \<longrightarrow> 
@@ -55,10 +71,16 @@ definition commit_es :: "'Env \<Rightarrow> (('s \<times> 's) set \<times> 's se
   "commit_es \<Gamma> \<equiv> \<lambda>(guar, post). {c. (\<forall>i. Suc i<length c \<longrightarrow> 
                (\<exists>t. \<Gamma> \<turnstile> c!i -es-t\<rightarrow> c!(Suc i)) \<longrightarrow> (gets_es (c!i), gets_es (c!Suc i)) \<in> guar) }"
 
+definition preserves_es :: "(('l,'k,'s,'prog) esconfs) set" where
+  "preserves_es \<equiv> {c. (\<forall>i. i < length c \<longrightarrow> ann_preserves_es (getspc_es (c!i)) (gets_es (c!i)))}"
+
 definition es_validity :: "'Env \<Rightarrow> ('l,'k,'s,'prog) esys \<Rightarrow> 's set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> 's set \<Rightarrow> bool" 
                  ("_ \<Turnstile> _ sat\<^sub>s [_, _, _, _]" [60,60,0,0,0,0] 45) where
   "\<Gamma> \<Turnstile> es sat\<^sub>s [pre, rely, guar, post] \<equiv> 
-   \<forall>s x. (cpts_of_es \<Gamma> es s x) \<inter> assume_es \<Gamma> (pre, rely) \<subseteq> commit_es \<Gamma> (guar, post)"
+   \<forall>s x. (cpts_of_es \<Gamma> es s x) \<inter> assume_es \<Gamma> (pre, rely) \<subseteq> commit_es \<Gamma> (guar, post) \<inter> preserves_es"
+
+definition ann_preserves_pes :: "('l,'k,'s,'prog) paresys \<Rightarrow> 's \<Rightarrow> bool" where
+  "ann_preserves_pes pes s \<equiv> \<forall>k. ann_preserves_es (pes k) s"
 
 definition assume_pes :: "'Env \<Rightarrow> ('s set \<times> ('s \<times> 's) set) \<Rightarrow> (('l,'k,'s,'prog) pesconfs) set" where
   "assume_pes \<Gamma> \<equiv> \<lambda>(pre, rely). {c. gets (c!0) \<in> pre \<and> (\<forall>i. Suc i<length c \<longrightarrow> 
@@ -68,10 +90,13 @@ definition commit_pes :: "'Env \<Rightarrow> (('s \<times> 's) set \<times> 's s
   "commit_pes \<Gamma> \<equiv> \<lambda>(guar, post). {c. (\<forall>i. Suc i<length c \<longrightarrow> 
                (\<exists>t. \<Gamma> \<turnstile> c!i -pes-t\<rightarrow> c!(Suc i)) \<longrightarrow> (gets (c!i), gets (c!Suc i)) \<in> guar)}"
 
+definition preserves_pes :: "(('l,'k,'s,'prog) pesconfs) set" where
+  "preserves_pes \<equiv> {c. (\<forall>i. i < length c \<longrightarrow> ann_preserves_pes (getspc (c!i)) (gets (c!i)))}"
+
 definition pes_validity :: "'Env \<Rightarrow> ('l,'k,'s,'prog) paresys \<Rightarrow> 's set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> 's set \<Rightarrow> bool" 
                  ("_ \<Turnstile> _ SAT [_, _, _, _]" [60,60,0,0,0,0] 45) where
   "\<Gamma> \<Turnstile> pes SAT [pre, rely, guar, post] \<equiv> 
-   \<forall>s x. (cpts_of_pes \<Gamma> pes s x) \<inter> assume_pes \<Gamma> (pre, rely) \<subseteq> commit_pes \<Gamma> (guar, post)"
+   \<forall>s x. (cpts_of_pes \<Gamma> pes s x) \<inter> assume_pes \<Gamma> (pre, rely) \<subseteq> commit_pes \<Gamma> (guar, post) \<inter> preserves_pes"
 
 subsection \<open>Lemmas of Correctness Formulas\<close>
 

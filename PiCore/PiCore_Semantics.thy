@@ -90,13 +90,6 @@ definition getact :: "('l,'k,'s,'prog) actk \<Rightarrow> ('l,'k,'s,'prog) act" 
 definition getk :: "('l,'k,'s,'prog) actk \<Rightarrow> 'k" where
   "getk a \<equiv> K a"
 
-fun all_evts_es :: "('l,'k,'s,'prog) esys \<Rightarrow> ('l,'k,'s,'prog) event set" 
-  where all_evts_es_seq: "all_evts_es (EvtSeq e es) = insert e (all_evts_es es)" |
-        all_evts_es_esys: "all_evts_es (EvtSys es) = es"
-
-definition all_evts :: "('l,'k,'s,'prog) paresys \<Rightarrow> ('l,'k,'s,'prog) event set"
-  where "all_evts parsys \<equiv> \<Union>k. all_evts_es (parsys k)"
-
 
 (* 'Env: type of context, such as procedures defined in a system *)
 locale event =
@@ -269,6 +262,11 @@ lemma evt_not_eq_in_tran2 [simp]: "\<not>(\<exists>et. \<Gamma> \<turnstile> (P,
 lemma basicevt_not_tran_fin: "\<Gamma> \<turnstile> (e, s, x) -et-EvtEnt e\<sharp>k\<rightarrow> (e', s, x') \<Longrightarrow> e' \<noteq> AnonyEvent fin_com"
   apply (erule etran.cases, simp_all)
   by (simp add: get_actk_def)
+
+lemma ev_tran_cmd_anony: 
+  "\<lbrakk>\<Gamma> \<turnstile> (e1, s1, x1) -et-(Cmd x\<sharp>k)\<rightarrow> (e2, s2, x2)\<rbrakk> \<Longrightarrow> e1 = AnonyEvent x"
+  apply(rule etran.cases)
+  by (simp add: get_actk_def)+
 
 subsubsection \<open>Event Systems\<close>
 
@@ -468,6 +466,15 @@ lemma cmd_enable_impl_anonyevt:
   apply (simp add: get_actk_def)+
   done
 
+lemma evtseq_cmd_tran_anonyevt: 
+    "\<lbrakk>\<Gamma> \<turnstile> (es, s, x) -es-(Cmd c)\<sharp>k\<rightarrow> (es', s', x')\<rbrakk> 
+        \<Longrightarrow> \<exists> es1. es = EvtSeq (AnonyEvent c) es1"
+  apply(rule estran.cases)
+     apply (simp add: get_actk_def)
+    apply (simp add: ev_tran_cmd_anony get_actk_def)
+   apply (simp add: ev_tran_cmd_anony get_actk_def)
+  by (simp add: ev_tran_cmd_anony get_actk_def)
+
 lemma cmd_enable_impl_notesys: 
     "\<lbrakk>\<Gamma> \<turnstile> (es, s, x) -es-(Cmd c)\<sharp>k\<rightarrow> (es', s', x')\<rbrakk> 
         \<Longrightarrow> \<not>(\<exists>ess. es = EvtSys ess)"
@@ -638,6 +645,11 @@ lemma estran_impl_evtentorcmd2': "\<lbrakk>\<Gamma> \<turnstile> esc1 -es-t\<sha
     ultimately show ?thesis using p0 estran_impl_evtentorcmd'[of \<Gamma> es1 s1 x1 t k es2 s2 x2] by simp 
   qed
 
+lemma estran_impl_evtseq_basic_evtent: "\<lbrakk>is_basicevt e; \<Gamma> \<turnstile> (EvtSeq e es, s, x) -es-act\<sharp>k\<rightarrow> (EvtSeq e' es, s', x')\<rbrakk>
+                                        \<Longrightarrow> act = EvtEnt e"
+  by (metis act.exhaust cmd_enable_impl_anonyevt2 esys.inject(1) evtent_is_basicevt_inevtseq2 
+      getspc_es_def is_basicevt.simps(1) prod.sel(1))
+
   
 subsubsection \<open>Parallel Event Systems\<close>
 
@@ -672,6 +684,29 @@ lemma evtent_in_pes_notchgstate: "\<lbrakk>\<Gamma> \<turnstile> (pes, s, x) -pe
   
 lemma evtent_in_pes_notchgstate2: "\<lbrakk>\<Gamma> \<turnstile> esc1 -pes-(EvtEnt e)\<sharp>k\<rightarrow> esc2\<rbrakk> \<Longrightarrow> gets esc1 = gets esc2"
   using evtent_in_pes_notchgstate by (metis pesconf_trip) 
+
+lemma pes_cmd_tran_anonyevt: "\<lbrakk>\<Gamma> \<turnstile> (pes, s, x) -pes-(Cmd c)\<sharp>k\<rightarrow> (pes', s', x')\<rbrakk> \<Longrightarrow> \<exists>es. pes k = EvtSeq (AnonyEvent c) es"
+  apply (rule pestran.cases)
+   apply (simp add: get_actk_def)+
+  by (simp add: evtseq_cmd_tran_anonyevt get_actk_def)
+
+
+lemma pes_cmd_tran_anonyevt1: "\<lbrakk>\<Gamma> \<turnstile> (pes, s, x) -pes-(Cmd c)\<sharp>k\<rightarrow> (pes', s', x')\<rbrakk> \<Longrightarrow> 
+                               \<exists>e. \<Gamma> \<turnstile> ((AnonyEvent c), s , x) -et-(Cmd c)\<sharp>k\<rightarrow> (e, s', x')"
+proof-
+  assume c0: "\<Gamma> \<turnstile> (pes, s, x) -pes-(Cmd c)\<sharp>k\<rightarrow> (pes', s', x')"
+  then have "\<exists>es. pes k = EvtSeq (AnonyEvent c) es" 
+    by (meson pes_cmd_tran_anonyevt)
+  then obtain es where "pes k = EvtSeq (AnonyEvent c) es" by auto
+  then have "\<exists>es'. \<Gamma> \<turnstile>((EvtSeq (AnonyEvent c) es), s, x)-es-(Cmd c)\<sharp>k\<rightarrow>(es', s', x')"
+    using c0 pestran_estran by fastforce
+  then obtain es' where "\<Gamma> \<turnstile> ((EvtSeq (AnonyEvent c) es), s, x)-es-(Cmd c)\<sharp>k\<rightarrow>(es', s', x')" by auto
+  then show ?thesis
+    apply (rule estran.cases)
+      apply (simp add: get_actk_def)+
+     apply blast
+    by auto
+qed
 
 end
 

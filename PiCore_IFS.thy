@@ -31,6 +31,7 @@ locale InfoFlow = event ptran petran fin_com
                                 dom_helper dome (gets P) (getx P) (Act (actk a)) (K (actk a)) = domain a}"*)
 begin
 
+thm none_no_tran 
 definition vpeqC :: "('l,'k,'s, 'prog) pesconf \<Rightarrow> 'd \<Rightarrow> ('l,'k,'s, 'prog) pesconf \<Rightarrow> bool" ("(_ \<sim>._.\<sim> _)" [70,71] 60)
    where "vpeqC C1 u C2 \<equiv> (gets C1) \<sim>u\<sim> (gets C2)"
 
@@ -56,21 +57,21 @@ primrec runC :: "('l,'k,'s,'prog,'d) action list \<Rightarrow> (('l,'k,'s,'prog)
   run_Nil:  "runC [] = Id " |
   run_Cons: "runC (a#as) = {(P,Q). (\<exists>R. (P,R) \<in> step a \<and> (R,Q) \<in> runC as)}"
 
-definition reachablec :: "('l,'k,'s,'prog) pesconf \<Rightarrow> ('l,'k,'s,'prog) pesconf \<Rightarrow> bool" ("(_ \<hookrightarrow> _)" [70,71] 60) where
-  "reachablec C1 C2 \<equiv>  (\<exists>as. (C1,C2) \<in> runC as)"
+definition reachableC :: "('l,'k,'s,'prog) pesconf \<Rightarrow> ('l,'k,'s,'prog) pesconf \<Rightarrow> bool" ("(_ \<hookrightarrow> _)" [70,71] 60) where
+  "reachableC C1 C2 \<equiv>  (\<exists>as. (C1,C2) \<in> runC as)"
 
-definition reachablec0 :: "('l,'k,'s,'prog) pesconf \<Rightarrow> bool"  where
-  "reachablec0 C \<equiv> reachablec C0 C"
+definition reachableC0 :: "('l,'k,'s,'prog) pesconf \<Rightarrow> bool"  where
+  "reachableC0 C \<equiv> reachableC C0 C"
 
 lemma run_equiv : "runC as = run as"
   apply (induct as, simp)
   by (simp add: relcomp_unfold)
 
-lemma reachablec_equiv : "reachablec C1 C2 = reachable C1 C2"
-  by (simp add: reachable_def reachablec_def run_equiv)
+lemma reachableC_equiv : "reachableC C1 C2 = reachable C1 C2"
+  by (simp add: reachable_def reachableC_def run_equiv)
 
-lemma reachable0_equiv : "reachablec0 C = reachable0  C"
-  by (simp add: reachable0_def reachablec0_def reachablec_equiv)
+lemma reachable0_equiv : "reachableC0 C = reachable0  C"
+  by (simp add: reachable0_def reachableC0_def reachableC_equiv)
 
 subsection \<open>Unwinding Conditions\<close>
 
@@ -78,12 +79,12 @@ definition observed_consistentC :: "bool" where
  "observed_consistentC \<equiv> (\<forall> s t u. ((s \<sim> u \<sim> t) \<longrightarrow> s \<guillemotright> u  = t \<guillemotright> u))"
 
 definition local_respectC :: "bool" where
-  "local_respectC \<equiv> \<forall>a u C. (reachablec0 C) \<longrightarrow> ((domain a) \<setminus>\<leadsto> u) \<longrightarrow> 
+  "local_respectC \<equiv> \<forall>a u C. (reachableC0 C) \<longrightarrow> ((domain a) \<setminus>\<leadsto> u) \<longrightarrow> 
                               (\<forall> C'. (C'\<in>nextC C a) \<longrightarrow> (C \<sim>.u.\<sim> C'))"
 
 
 definition weak_step_consistentC :: "bool" where
-  "weak_step_consistentC \<equiv> \<forall>a u C1 C2. (reachablec0 C1) \<and> (reachablec0 C2) \<longrightarrow>  (C1 \<sim>.u.\<sim> C2) 
+  "weak_step_consistentC \<equiv> \<forall>a u C1 C2. (reachableC0 C1) \<and> (reachableC0 C2) \<longrightarrow>  (C1 \<sim>.u.\<sim> C2) 
                          \<and> ( ((domain a) \<leadsto> u) \<longrightarrow> (C1 \<sim>.(domain a).\<sim> C2) ) \<longrightarrow> 
                          (\<forall> C1' C2'. (C1'\<in>nextC C1 a) \<and> (C2'\<in>nextC C2 a) \<longrightarrow> (C1' \<sim>.u.\<sim> C2'))"
 
