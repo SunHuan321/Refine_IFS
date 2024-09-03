@@ -912,19 +912,6 @@ proof-
   qed
 qed
 
-interpretation SM_IFS C0 step domain obsC vpeqC interference
-  using SM_IFS_def vpeqC_reflexive vpeqC_symmetric vpeqC_transitive by blast
-
-subsection \<open>Unwinding Theorem\<close>
-
-thm PiCore_nonleakage
-
-theorem PiCore_RG_nonleakage: "\<lbrakk> observed_consistentC; step_consistent_events \<rbrakk> \<Longrightarrow> nonleakage"
-  by (rule PiCore_nonleakage, simp_all add: rg_sc_imp_sc)
-
-theorem PiCore_RG_noninfluence0: "\<lbrakk>observed_consistentC; local_respect_events;step_consistent_events\<rbrakk> 
-                                  \<Longrightarrow> noninfluence0"
-  by (rule PiCore_noninfluence0, simp_all add: rg_sc_imp_sc rg_lr_imp_lr )
 
 end
 

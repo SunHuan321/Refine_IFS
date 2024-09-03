@@ -874,10 +874,10 @@ interpretation PiCore_Refine ptran\<^sub>c petran\<^sub>c fin_com\<^sub>c \<Gamm
 proof
   show "C0\<^sub>c \<sim> C0\<^sub>a"
     by (simp add: init_sim sim_s_def)
-  show "\<And>a\<^sub>c a\<^sub>a C\<^sub>c C\<^sub>a C\<^sub>c'. sim_a a\<^sub>c = Some a\<^sub>a \<Longrightarrow> InfoFlow\<^sub>c.reachablec0 C\<^sub>c \<Longrightarrow> C\<^sub>c \<sim> C\<^sub>a \<Longrightarrow> 
+  show "\<And>a\<^sub>c a\<^sub>a C\<^sub>c C\<^sub>a C\<^sub>c'. sim_a a\<^sub>c = Some a\<^sub>a \<Longrightarrow> InfoFlow\<^sub>c.reachableC0 C\<^sub>c \<Longrightarrow> C\<^sub>c \<sim> C\<^sub>a \<Longrightarrow> 
         (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c \<Longrightarrow> \<exists>C\<^sub>a'. C\<^sub>c' \<sim> C\<^sub>a' \<and> (C\<^sub>a, C\<^sub>a') \<in> step\<^sub>a a\<^sub>a"
     using action_refine by auto
-  show "\<And>a\<^sub>c C\<^sub>c C\<^sub>a C\<^sub>c'. sim_a a\<^sub>c = None \<Longrightarrow> InfoFlow\<^sub>c.reachablec0 C\<^sub>c \<Longrightarrow> C\<^sub>c \<sim> C\<^sub>a \<Longrightarrow> (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c 
+  show "\<And>a\<^sub>c C\<^sub>c C\<^sub>a C\<^sub>c'. sim_a a\<^sub>c = None \<Longrightarrow> InfoFlow\<^sub>c.reachableC0 C\<^sub>c \<Longrightarrow> C\<^sub>c \<sim> C\<^sub>a \<Longrightarrow> (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c 
         \<Longrightarrow> C\<^sub>c' \<sim> C\<^sub>a"
     using none_refine by blast
   show "interference\<^sub>c = interference\<^sub>a"
