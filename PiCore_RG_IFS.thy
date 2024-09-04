@@ -22,19 +22,17 @@ and rghoare_p :: "'Env \<Rightarrow> ['prog, 's set, ('s \<times> 's) set, ('s \
 fixes   interference :: "'d \<Rightarrow> 'd \<Rightarrow> bool" ("(_ \<leadsto> _)" [70,71] 60)
    and  vpeq ::  "'s \<Rightarrow> 'd \<Rightarrow> 's \<Rightarrow> bool" ("(_ \<sim>_\<sim> _)" [70,69,70] 60)
    and  dome :: "'s  \<Rightarrow> ('l,'k,'s, 'prog) event \<Rightarrow> 'd"
- assumes  vpeq_transitive : "\<forall> a b c u. (a \<sim> u \<sim> b) \<and> (b \<sim> u \<sim> c) \<longrightarrow> (a \<sim> u \<sim> c)"
-    and   vpeq_symmetric : "\<forall> a b u. (a \<sim> u \<sim> b) \<longrightarrow> (b \<sim> u \<sim> a)"
-    and   vpeq_reflexive : "\<forall> a u. (a \<sim> u \<sim> a)"
+ assumes  RG_vpeq_trans : "\<forall> a b c u. (a \<sim> u \<sim> b) \<and> (b \<sim> u \<sim> c) \<longrightarrow> (a \<sim> u \<sim> c)"
+    and   RG_vpeq_sym : "\<forall> a b u. (a \<sim> u \<sim> b) \<longrightarrow> (b \<sim> u \<sim> a)"
+    and   RG_vpeq_refl : "\<forall> a u. (a \<sim> u \<sim> a)"
 begin
 
-definition noninterf1 :: "'d \<Rightarrow> 'd \<Rightarrow> bool" ("(_ \<setminus>\<leadsto>\<^sub>v _)" [70,71] 60)
-  where "u \<setminus>\<leadsto>\<^sub>v v \<equiv> \<not> (u \<leadsto> v)"
 
 subsection \<open>local_respect program\<close>
 
 definition local_respect_p1 :: "'Env \<Rightarrow> 'prog \<Rightarrow> ('l, 'k, 's,'prog) event \<Rightarrow> bool"
   where  "local_respect_p1 \<Gamma> P ev \<equiv> \<forall> s P' s' u. ann_preserves_p P s \<and> 
-         (dome s ev) \<setminus>\<leadsto>\<^sub>v u \<and> (\<Gamma> \<turnstile> (P, s) -c\<rightarrow> (P', s')) \<longrightarrow> s \<sim>u\<sim> s'"
+         (\<not> (dome s ev) \<leadsto> u) \<and> (\<Gamma> \<turnstile> (P, s) -c\<rightarrow> (P', s')) \<longrightarrow> s \<sim>u\<sim> s'"
 
 definition local_respect_p2 :: "'Env \<Rightarrow> 'prog \<Rightarrow> 'prog set \<Rightarrow> bool"
   where "local_respect_p2 \<Gamma> P \<S> \<equiv>  (\<forall> s P' s'. ann_preserves_p P s 
@@ -56,14 +54,14 @@ lemma local_respect_p_insert: "\<lbrakk>local_respect_p \<Gamma> \<S> ev; local_
   apply (simp add: insert_absorb)
   by (meson insertCI local_respect_p2_def)
 
-definition lr_p :: "'Env \<Rightarrow> 'prog \<Rightarrow> ('l, 'k, 's, 'prog) event \<Rightarrow> bool" ("_ \<turnstile>\<^sub>l\<^sub>r _ sat\<^sub>p _" [60,60, 60] 45)
+definition lr_p :: "'Env \<Rightarrow> 'prog \<Rightarrow> ('l, 'k, 's, 'prog) event \<Rightarrow> bool" ("_ \<Turnstile>\<^sub>l\<^sub>r _ sat\<^sub>p _" [60,60, 60] 45)
   where "lr_p \<Gamma> P ev = (\<exists>\<S>.  P \<in> \<S> \<and> local_respect_p \<Gamma> \<S> ev)"
 
 subsection \<open>local_respect event\<close>
 
 definition local_respect_e1 :: "'Env \<Rightarrow> ('l, 'k, 's,'prog) event \<Rightarrow> ('l, 'k, 's,'prog) event \<Rightarrow> bool"
   where "local_respect_e1 \<Gamma> e ev \<equiv> \<forall>s x e' s' x' u t.  ann_preserves_e e s 
-  \<and> (dome s ev) \<setminus>\<leadsto>\<^sub>v u \<and> (\<Gamma> \<turnstile> (e, s, x) -et-t\<rightarrow> (e', s', x')) \<longrightarrow> s \<sim>u\<sim> s'"
+  \<and> \<not> ((dome s ev) \<leadsto> u) \<and> (\<Gamma> \<turnstile> (e, s, x) -et-t\<rightarrow> (e', s', x')) \<longrightarrow> s \<sim>u\<sim> s'"
 
 definition local_respect_e2 :: "'Env \<Rightarrow> ('l, 'k, 's, 'prog) event \<Rightarrow> ('l, 'k, 's, 'prog) event set \<Rightarrow> bool"
   where "local_respect_e2 \<Gamma> e \<S> \<equiv> \<forall>x s t e' s' x'. ann_preserves_e e s 
@@ -114,31 +112,31 @@ lemma Prog_Trans_Anony_Respect: "\<lbrakk>P \<in> \<S>; local_respect_p \<Gamma>
   using Prog_Trans_Anony_Respect_aux2 Prog_Trans_Anony_def by auto
 
 
-lemma lr_e_Anony: "\<lbrakk>\<Gamma> \<turnstile>\<^sub>l\<^sub>r P sat\<^sub>p ev\<rbrakk> \<Longrightarrow> \<exists>\<S>. (AnonyEvent P) \<in> \<S> \<and> local_respect_e \<Gamma> \<S> ev"
+lemma lr_e_Anony: "\<lbrakk>\<Gamma> \<Turnstile>\<^sub>l\<^sub>r P sat\<^sub>p ev\<rbrakk> \<Longrightarrow> \<exists>\<S>. (AnonyEvent P) \<in> \<S> \<and> local_respect_e \<Gamma> \<S> ev"
   apply (simp add: lr_p_def, clarify)
   apply (rule_tac x = "(Prog_Trans_Anony \<S>)" in exI)
   apply (rule conjI, simp add: Prog_Trans_Anony_def)
   using Prog_Trans_Anony_Respect by blast
 
 
-lemma lr_e_Basic: "\<lbrakk>ev = BasicEvent e; \<Gamma> \<turnstile>\<^sub>l\<^sub>r body e sat\<^sub>p ev\<rbrakk> \<Longrightarrow> \<exists>\<S>. ev \<in> \<S> \<and> local_respect_e \<Gamma> \<S> ev"
+lemma lr_e_Basic: "\<lbrakk>ev = BasicEvent e; \<Gamma> \<Turnstile>\<^sub>l\<^sub>r body e sat\<^sub>p ev\<rbrakk> \<Longrightarrow> \<exists>\<S>. ev \<in> \<S> \<and> local_respect_e \<Gamma> \<S> ev"
   apply (drule lr_e_Anony, erule exE)
   apply (rule_tac x = "\<S> \<union> {ev}" in exI)
   apply (rule conjI, simp)
   apply (rule local_respect_e_insert, simp)
    apply (simp add: local_respect_e1_def)
-  apply (simp add: etran.simps vpeq_reflexive)
+  apply (simp add: etran.simps RG_vpeq_refl)
   apply (simp add: local_respect_e2_def)
   by (metis ent_spec2' noevtent_notran)
 
-lemma lr_e_Basic1: "\<lbrakk>is_basicevt ev; \<Gamma> \<turnstile>\<^sub>l\<^sub>r the (body_e ev) sat\<^sub>p ev\<rbrakk> \<Longrightarrow> \<exists>\<S>. ev \<in> \<S> \<and> local_respect_e \<Gamma> \<S> ev"
+lemma lr_e_Basic1: "\<lbrakk>is_basicevt ev; \<Gamma> \<Turnstile>\<^sub>l\<^sub>r the (body_e ev) sat\<^sub>p ev\<rbrakk> \<Longrightarrow> \<exists>\<S>. ev \<in> \<S> \<and> local_respect_e \<Gamma> \<S> ev"
 proof-
   assume a0: "is_basicevt ev"
-    and  a1: "\<Gamma> \<turnstile>\<^sub>l\<^sub>r the (body_e ev) sat\<^sub>p ev"
+    and  a1: "\<Gamma> \<Turnstile>\<^sub>l\<^sub>r the (body_e ev) sat\<^sub>p ev"
   from a0 have "\<exists>e. ev = BasicEvent e" 
     by (metis event.exhaust is_basicevt.simps(1))
   then obtain e where b0: "ev = BasicEvent e" by auto
-  with a1 have "\<Gamma> \<turnstile>\<^sub>l\<^sub>r body e sat\<^sub>p ev" by simp
+  with a1 have "\<Gamma> \<Turnstile>\<^sub>l\<^sub>r body e sat\<^sub>p ev" by simp
   with b0 show ?thesis
     by (rule_tac e = e in lr_e_Basic, simp_all)
 qed
@@ -149,7 +147,7 @@ lemma local_respect_event : "\<lbrakk>getspc_e c \<in> \<S> ; local_respect_e \<
   using local_respect_e2_def local_respect_e_def by blast
 
 lemma local_next_state : "\<lbrakk>e \<in> \<S> \<and> local_respect_e \<Gamma> \<S> ev; ann_preserves_e e s;
-      (dome s ev) \<setminus>\<leadsto>\<^sub>v u; \<Gamma> \<turnstile> (e, s, x) -et-t\<rightarrow> (e', s', x')\<rbrakk> \<Longrightarrow> s \<sim>u\<sim> s'"
+      \<not> (dome s ev) \<leadsto> u; \<Gamma> \<turnstile> (e, s, x) -et-t\<rightarrow> (e', s', x')\<rbrakk> \<Longrightarrow> s \<sim>u\<sim> s'"
   apply (simp add: local_respect_e_def, clarify)
   using local_respect_e1_def by blast
 
@@ -195,7 +193,7 @@ lemma step_consistent_p_insert: "\<lbrakk>step_consistent_p \<Gamma> \<S> ev; st
    apply (simp add: insert_absorb)
   by (meson insertCI step_consistent_p2_def)
 
-definition sc_p :: "'Env \<Rightarrow> 'prog \<Rightarrow> ('l, 'k, 's, 'prog) event \<Rightarrow> bool" ("_ \<turnstile>\<^sub>s\<^sub>c _ sat\<^sub>p _" [60,60,60] 45)
+definition sc_p :: "'Env \<Rightarrow> 'prog \<Rightarrow> ('l, 'k, 's, 'prog) event \<Rightarrow> bool" ("_ \<Turnstile>\<^sub>s\<^sub>c _ sat\<^sub>p _" [60,60,60] 45)
   where "sc_p \<Gamma> P ev = (\<exists>\<S>.  P \<in> \<S> \<and> step_consistent_p \<Gamma> \<S> ev)"
 
 subsection \<open>step consistent event\<close>
@@ -262,14 +260,14 @@ lemma Prog_Trans_Anony_Consistent: "\<lbrakk> P \<in> \<S>; step_consistent_p \<
   using Prog_Trans_Anony_Consistent_aux2 Prog_Trans_Anony_def by force
 
 
-lemma sc_e_Anony: "\<lbrakk>\<Gamma> \<turnstile>\<^sub>s\<^sub>c P sat\<^sub>p ev\<rbrakk> \<Longrightarrow> \<exists>\<S>. (AnonyEvent P) \<in> \<S> \<and> step_consistent_e \<Gamma> \<S> ev"
+lemma sc_e_Anony: "\<lbrakk>\<Gamma> \<Turnstile>\<^sub>s\<^sub>c P sat\<^sub>p ev\<rbrakk> \<Longrightarrow> \<exists>\<S>. (AnonyEvent P) \<in> \<S> \<and> step_consistent_e \<Gamma> \<S> ev"
   apply (simp add: sc_p_def, clarify)
   apply (rule_tac x = "(Prog_Trans_Anony \<S>)" in exI)
   apply (rule conjI, simp add: Prog_Trans_Anony_def)
   using Prog_Trans_Anony_Consistent by blast
 
 
-lemma sc_e_Basic: "\<lbrakk>ev = BasicEvent e;  \<Gamma> \<turnstile>\<^sub>s\<^sub>c body e sat\<^sub>p ev\<rbrakk> \<Longrightarrow> \<exists>\<S>. ev \<in> \<S> \<and> step_consistent_e \<Gamma> \<S> ev"
+lemma sc_e_Basic: "\<lbrakk>ev = BasicEvent e;  \<Gamma> \<Turnstile>\<^sub>s\<^sub>c body e sat\<^sub>p ev\<rbrakk> \<Longrightarrow> \<exists>\<S>. ev \<in> \<S> \<and> step_consistent_e \<Gamma> \<S> ev"
   apply (drule sc_e_Anony, erule exE)
   apply (rule_tac x = "\<S> \<union> {ev}" in exI)
   apply (rule conjI, simp)
@@ -279,14 +277,14 @@ lemma sc_e_Basic: "\<lbrakk>ev = BasicEvent e;  \<Gamma> \<turnstile>\<^sub>s\<^
   apply (simp add: step_consistent_e2_def)
   by (metis ent_spec2' noevtent_notran)
 
-lemma sc_e_Basic1: "\<lbrakk>is_basicevt ev;  \<Gamma> \<turnstile>\<^sub>s\<^sub>c the (body_e ev) sat\<^sub>p ev\<rbrakk> \<Longrightarrow> \<exists>\<S>. ev \<in> \<S> \<and> step_consistent_e \<Gamma> \<S> ev"
+lemma sc_e_Basic1: "\<lbrakk>is_basicevt ev;  \<Gamma> \<Turnstile>\<^sub>s\<^sub>c the (body_e ev) sat\<^sub>p ev\<rbrakk> \<Longrightarrow> \<exists>\<S>. ev \<in> \<S> \<and> step_consistent_e \<Gamma> \<S> ev"
 proof-
   assume a0: "is_basicevt ev"
-    and  a1: "\<Gamma> \<turnstile>\<^sub>s\<^sub>c the (body_e ev) sat\<^sub>p ev"
+    and  a1: "\<Gamma> \<Turnstile>\<^sub>s\<^sub>c the (body_e ev) sat\<^sub>p ev"
   from a0 have "\<exists>e. ev = BasicEvent e" 
     by (metis anonyevt_isnot_basic event.exhaust is_anonyevt.simps(1))
   then obtain e where b0: "ev = BasicEvent e" by auto
-  with a1 have "\<Gamma> \<turnstile>\<^sub>s\<^sub>c body e sat\<^sub>p ev" by simp
+  with a1 have "\<Gamma> \<Turnstile>\<^sub>s\<^sub>c body e sat\<^sub>p ev" by simp
   with b0 show ?thesis
     by (rule_tac e = e in sc_e_Basic, simp_all)
 qed
@@ -311,9 +309,14 @@ lemma step_consistent_forall : "\<lbrakk>e \<in> \<S> ; step_consistent_e \<Gamm
    apply (simp add: preserves_e_def)
   using notran_confeqi by blast
 
-end
+definition local_respect_events :: "'Env \<Rightarrow> ('l,'k,'s, 'prog) rgformula_par \<Rightarrow> bool" where
+  "local_respect_events \<Gamma> pesf \<equiv> \<forall>ef. ef\<in>all_evts pesf \<longrightarrow> ( (\<Gamma> \<Turnstile>\<^sub>l\<^sub>r the (body_e (E\<^sub>e ef)) sat\<^sub>p (E\<^sub>e ef)) \<or>
+   (\<forall>u s1 s2. (s1, s2) \<in> Guar\<^sub>e ef \<longrightarrow> ((\<not> (dome s1 (E\<^sub>e ef)) \<leadsto> u) \<longrightarrow> s1 \<sim>u\<sim> s2)))"
 
-print_locale InfoFlow
+definition step_consistent_events :: "'Env \<Rightarrow> ('l,'k,'s, 'prog) rgformula_par \<Rightarrow> bool" where
+  "step_consistent_events \<Gamma> pesf \<equiv> \<forall>ef. ef\<in>all_evts pesf  \<longrightarrow>\<Gamma> \<Turnstile>\<^sub>s\<^sub>c the (body_e (E\<^sub>e ef)) sat\<^sub>p (E\<^sub>e ef)"
+
+end
 
 locale PiCore_RG_IFS = PiCore_RG_IFS_Validity ptran petran fin_com cpts_p cpts_of_p prog_validity ann_preserves_p
                        assume_p commit_p preserves_p rghoare_p interference vpeq dome
@@ -354,23 +357,33 @@ fixes \<Gamma> :: 'Env and
                                   \<and> dome (gets P) (eventof a) = domain a))}"
 begin
 
+(*
+definition local_respect_events :: "bool" where
+  "local_respect_events \<equiv> \<forall>ef. ef\<in>all_evts pesf \<longrightarrow> ( (\<Gamma> \<Turnstile>\<^sub>l\<^sub>r the (body_e (E\<^sub>e ef)) sat\<^sub>p (E\<^sub>e ef)) \<or>
+   (\<forall>u s1 s2. (s1, s2) \<in> Guar\<^sub>e ef \<longrightarrow> ((\<not> (dome s1 (E\<^sub>e ef)) \<leadsto> u) \<longrightarrow> s1 \<sim>u\<sim> s2)))"
+
+definition step_consistent_events :: "bool" where
+  "step_consistent_events \<equiv> \<forall>ef. ef\<in>all_evts pesf  \<longrightarrow>\<Gamma> \<Turnstile>\<^sub>s\<^sub>c the (body_e (E\<^sub>e ef)) sat\<^sub>p (E\<^sub>e ef)"
+*)
+
 lemma parsys_sat: " \<Gamma> \<turnstile> pesf SAT [{s0}, {}, UNIV, UNIV]"
   by (rule ParallelESys, simp_all add: parsys_sat_rg  parsys_sat_init parsys_rg_com)
 
 interpretation PiCore_IFS.InfoFlow ptran petran fin_com \<Gamma> C0 step interference vpeq obs dome
 proof
   show " \<forall>a b c u. a \<sim>u\<sim> b \<and> b \<sim>u\<sim> c \<longrightarrow> a \<sim>u\<sim> c"
-    using vpeq_transitive by fastforce
+    using RG_vpeq_trans by fastforce
   show "\<forall>a b u. a \<sim>u\<sim> b \<longrightarrow> b \<sim>u\<sim> a"
-    using vpeq_symmetric by force
+    using RG_vpeq_sym by force
   show "\<forall>a u. a \<sim>u\<sim> a"
-    using vpeq_reflexive by blast
+    using RG_vpeq_refl by blast
   show "\<And>a. step a \<equiv>
          {(P, Q). \<Gamma> \<turnstile> P -pes-actk a\<rightarrow> Q \<and>
          ((\<exists>e k. actk a = EvtEnt e\<sharp>k \<and> eventof a = e \<and> dome (gets P) e = domain a) \<or>
          (\<exists>c k. actk a = Cmd c\<sharp>k \<and> eventof a = getx P k \<and> dome (gets P) (eventof a) = domain a))}"
     using step_def by presburger
 qed
+
 
 lemma run_is_cpt: "\<forall>C1 C2 as. (C1,C2) \<in> runC as \<longrightarrow> 
             (\<exists>c. c\<in>cpts_pes \<Gamma> \<and> c!0 = C1 \<and> last c = C2 \<and> Suc (length as) = length c \<and>
@@ -456,25 +469,18 @@ lemma reachable_impl_cpts: "reachableC C1 C2 \<Longrightarrow> \<exists>c. c \<i
 lemma reachable0_impl_cpts: "reachableC0 C \<Longrightarrow> \<exists>c. c \<in> cpts_pes \<Gamma> \<and> c!0 = C0 \<and> last c = C"
   using reachable_impl_cpts reachableC0_def by simp
 
-definition local_respect_events :: "bool" where
-  "local_respect_events \<equiv> \<forall>ef. ef\<in>all_evts pesf \<longrightarrow> ( (\<Gamma> \<turnstile>\<^sub>l\<^sub>r the (body_e (E\<^sub>e ef)) sat\<^sub>p (E\<^sub>e ef)) \<or>
-   (\<forall>u s1 s2. (s1, s2) \<in> Guar\<^sub>e ef \<longrightarrow> ((dome s1 (E\<^sub>e ef)) \<setminus>\<leadsto>\<^sub>v u \<longrightarrow> s1 \<sim>u\<sim> s2)))"
-
-definition step_consistent_events :: "bool" where
-  "step_consistent_events \<equiv> \<forall>ef. ef\<in>all_evts pesf  \<longrightarrow>\<Gamma> \<turnstile>\<^sub>s\<^sub>c the (body_e (E\<^sub>e ef)) sat\<^sub>p (E\<^sub>e ef)"
-
-lemma rg_lr_imp_lr: "local_respect_events \<Longrightarrow> local_respectC"
+lemma rg_lr_imp_lr: "local_respect_events \<Gamma> pesf \<Longrightarrow> local_respectC"
 proof-
-  assume p0: "local_respect_events"
+  assume p0: "local_respect_events \<Gamma> pesf"
   then have p1: "\<forall>ef. ef\<in>all_evts pesf  \<longrightarrow> ((\<exists>\<S>. (E\<^sub>e ef) \<in> \<S> \<and> local_respect_e \<Gamma> \<S> (E\<^sub>e ef)) \<or> 
-                 (\<forall>u s1 s2. (s1, s2) \<in> Guar\<^sub>e ef \<longrightarrow> ((dome s1 (E\<^sub>e ef)) \<setminus>\<leadsto>\<^sub>v u \<longrightarrow> s1 \<sim>u\<sim> s2)))"
-    using all_evts_are_basic local_respect_events_def lr_e_Basic1 by blast
+                 (\<forall>u s1 s2. (s1, s2) \<in> Guar\<^sub>e ef \<longrightarrow> (\<not> ((dome s1 (E\<^sub>e ef)) \<leadsto> u) \<longrightarrow> s1 \<sim>u\<sim> s2)))"
+    using all_evts_are_basic local_respect_events_def lr_e_Basic1 by meson
   show ?thesis
   proof-
     {
       fix a u C
       assume a0: "reachableC0 C"
-         and a1: "(domain (a::('l,'k,'s,'prog,'d) action)) \<setminus>\<leadsto>\<^sub>v u"
+         and a1: "\<not> (domain (a::('l,'k,'s,'prog,'d) action)) \<leadsto> u"
       have "\<forall> C'. (C'\<in>nextC C a) \<longrightarrow> (C \<sim>.u.\<sim> C')"
       proof-
         {
@@ -559,11 +565,11 @@ proof-
             with a1 b3 c0 have c8: "eventof a = getx C k \<and> dome (gets C) (eventof a) = domain a" 
               by (metis actk.iffs get_actk_def)
 
-            with a1 b3 b6 c7 have c9 : "(dome s1  (E\<^sub>e ef)) \<setminus>\<leadsto>\<^sub>v u" 
+            with a1 b3 b6 c7 have c9 : "\<not> (dome s1  (E\<^sub>e ef)) \<leadsto> u" 
               using gets_def E\<^sub>e_def by (metis fst_conv snd_conv)
 
             from p1 c7 have c10: "(\<exists>\<S>. (E\<^sub>e ef) \<in> \<S> \<and> local_respect_e \<Gamma> \<S> (E\<^sub>e ef)) \<or> 
-            (\<forall>u s1 s2. (s1, s2) \<in> Guar\<^sub>e ef \<longrightarrow> ((dome s1 (E\<^sub>e ef)) \<setminus>\<leadsto>\<^sub>v u \<longrightarrow> s1 \<sim>u\<sim> s2))"
+            (\<forall>u s1 s2. (s1, s2) \<in> Guar\<^sub>e ef \<longrightarrow> (\<not> ((dome s1 (E\<^sub>e ef)) \<leadsto> u) \<longrightarrow> s1 \<sim>u\<sim> s2))"
               by presburger
             then have " s1 \<sim>u\<sim> s2"
             proof
@@ -627,7 +633,7 @@ proof-
             with b6 b7 c52 c9 d1 show ?thesis 
               by (metis local_next_state pes_cmd_tran_anonyevt1)
           next
-            assume f0: "\<forall>u s1 s2. (s1, s2) \<in> Guar\<^sub>e ef \<longrightarrow> dome s1 (E\<^sub>e ef) \<setminus>\<leadsto>\<^sub>v u \<longrightarrow> s1 \<sim>u\<sim> s2"
+            assume f0: "\<forall>u s1 s2. (s1, s2) \<in> Guar\<^sub>e ef \<longrightarrow> \<not> dome s1 (E\<^sub>e ef) \<leadsto> u \<longrightarrow> s1 \<sim>u\<sim> s2"
             from p1 b6 b7 c7 c8 r1 have "(gets C, gets C')\<in>Guar\<^sub>e ef"
               using evt_in_parsys_in_evtrgfs Guar\<^sub>f_def E\<^sub>e_def Guar\<^sub>e_def by metis
             with f0 show ?thesis using p1 b6 b7 c7 c8 a1 E\<^sub>e_def
@@ -640,22 +646,20 @@ proof-
           case (EvtEnt x)
           from b5 b8 have "s1 = s2" 
             using entevt_notchgstate by (metis EvtEnt.prems evtent_is_basicevt)
-          with b6 b7 show ?case by (simp add: gets_def vpeqC_def vpeq_reflexive)
+          with b6 b7 show ?case by (simp add: gets_def vpeqC_def RG_vpeq_refl)
         qed
       }
       then show ?thesis by auto
     qed
   }
   then show ?thesis using local_respectC_def 
-    by (metis (no_types, lifting) SM_IFS.intro SM_IFS.noninterf_def noninterf1_def 
-       vpeqC_reflexive vpeqC_symmetric vpeqC_transitive)
+    by blast
 qed
 qed
 
-
-lemma rg_sc_imp_sc: "step_consistent_events \<Longrightarrow> weak_step_consistentC"
+lemma rg_sc_imp_sc: "step_consistent_events \<Gamma> pesf \<Longrightarrow> weak_step_consistentC"
 proof-
-  assume p0: "step_consistent_events"
+  assume p0: "step_consistent_events \<Gamma> pesf"
   then have p1: "\<forall>ef. ef\<in>all_evts pesf  \<longrightarrow> (\<exists>\<S>. (E\<^sub>e ef) \<in> \<S> \<and> step_consistent_e \<Gamma> \<S> (E\<^sub>e ef))"
     by (simp add: all_evts_are_basic sc_e_Basic1 step_consistent_events_def)
   show ?thesis
@@ -902,7 +906,7 @@ proof-
               by (metis EvtEnt.prems b5 evtent_is_basicevt)
             from b13 have r2: "s2 = s2'" using entevt_notchgstate
               by (metis EvtEnt.prems b5 evtent_is_basicevt) 
-            from a1 b8 b9 b10 b11 r1 r2 show ?case using gets_def vpeqC_def vpeq_reflexive
+            from a1 b8 b9 b10 b11 r1 r2 show ?case using gets_def vpeqC_def RG_vpeq_refl
               by (metis fst_conv snd_conv)
           qed
         }
@@ -911,7 +915,6 @@ proof-
     then show ?thesis using weak_step_consistentC_def by blast
   qed
 qed
-
 
 end
 

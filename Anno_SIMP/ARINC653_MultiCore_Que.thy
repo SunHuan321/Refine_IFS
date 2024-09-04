@@ -1,5 +1,5 @@
 theory ARINC653_MultiCore_Que
-  imports PiCore_Anno_SIMP_Syntax "../PiCore_RG_IFS"
+  imports PiCore_Anno_SIMP_Syntax "../PiCore_RG_IFS" Anno_SIMP_IFS
 begin
 
 subsection \<open>functional specification\<close>
@@ -266,8 +266,8 @@ lemma Core_Init_SatRG: "\<forall>k. \<Gamma> \<turnstile> (Core_Init k) sat Core
 
 
 lemma Sched_SatRG_h1:
-    " \<turnstile>\<lbrace>True \<rbrace>\<acute>partst := \<acute>partst(the (\<acute>cur (c2s conf k)) := READY);;
-       \<lbrace>True \<rbrace> \<acute>cur := \<acute>cur (c2s conf k := None) sat\<^sub>p 
+    " \<turnstile>\<^sub>I Some (\<lbrace>True \<rbrace>\<acute>partst := \<acute>partst(the (\<acute>cur (c2s conf k)) := READY);;
+       \<lbrace>True \<rbrace> \<acute>cur := \<acute>cur (c2s conf k := None)) sat\<^sub>p 
        [\<lbrace>p2s conf p = c2s conf k \<and> \<acute>partst p \<noteq> IDLE \<and> (\<acute>cur (c2s conf k) = None 
         \<or> p2s conf (the (\<acute>cur (c2s conf k))) = c2s conf k)\<rbrace> \<inter> \<lbrace>\<exists>y. \<acute>cur (c2s conf k) = Some y\<rbrace> \<inter> {V}, 
         {(s, t).s = t}, UNIV, 
@@ -309,8 +309,8 @@ lemma Sched_SatRG_h1:
   apply auto[1]
   done
 
-lemma Sched_SatRG_h2: "\<turnstile> \<lbrace>True \<rbrace> \<acute>cur := \<acute>cur(c2s conf k \<mapsto> p) ;;
-                         \<lbrace>True \<rbrace> \<acute>partst := \<acute>partst (p := RUN)
+lemma Sched_SatRG_h2: "\<turnstile>\<^sub>I Some (\<lbrace>True \<rbrace> \<acute>cur := \<acute>cur(c2s conf k \<mapsto> p) ;;
+                         \<lbrace>True \<rbrace> \<acute>partst := \<acute>partst (p := RUN))
       sat\<^sub>p [\<lbrace>p2s conf p = c2s conf k \<and> \<acute>cur (c2s conf k) = None\<rbrace> \<inter> {V},  {(s, t). s = t}, UNIV, 
            \<lbrace>(\<acute>cur = (cur V)(c2s conf k \<mapsto> p) \<and> \<acute>partst = (partst V)(the (\<acute>cur (c2s conf k)) := RUN) 
            \<and> p2s conf p = c2s conf k \<or> \<acute>cur = (cur V)(c2s conf k := None) \<and> 
@@ -332,7 +332,7 @@ lemma Sched_SatRG_h2: "\<turnstile> \<lbrace>True \<rbrace> \<acute>cur := \<acu
      apply (simp add: stable_def)+
   done
 
-lemma Sched_SatRG: " (Schedule k p) \<turnstile> Schedule_RGCond k p"
+lemma Sched_SatRG: " \<Gamma> \<turnstile> (Schedule k p) sat Schedule_RGCond k p"
   apply(simp add:Evt_sat_RG_def) 
   apply(simp add:Schedule_def)
   apply(rule BasicEvt) 
@@ -353,12 +353,12 @@ lemma Sched_SatRG: " (Schedule k p) \<turnstile> Schedule_RGCond k p"
       apply (simp add: stable_def)+
     apply (rule allI)
   using Sched_SatRG_h2 apply auto[1]
-   apply(simp add: stable_def Schedule_RGCond_def Pre\<^sub>f_def  Post\<^sub>f_def Guar\<^sub>f_def getrgformula_def)
+   apply(simp add: stable_def Schedule_RGCond_def Pre\<^sub>f_def  Post\<^sub>f_def Guar\<^sub>f_def getrgformula_def stable_e_def)
   apply(simp add: Schedule_RGCond_def Pre\<^sub>f_def Post\<^sub>f_def Guar\<^sub>f_def getrgformula_def)
   done
 
-lemma Send_Que_Message_SatRG_h1: "\<turnstile> \<lbrace>True \<rbrace> \<acute>qbuf := \<acute>qbuf(ch_srcqport conf p := \<acute>qbuf (ch_srcqport conf p) @ [m]) ;;
-                                    \<lbrace>True \<rbrace> \<acute>qbufsize := \<acute>qbufsize (ch_srcqport conf p := Suc (\<acute>qbufsize (ch_srcqport conf p)))
+lemma Send_Que_Message_SatRG_h1: "\<turnstile>\<^sub>I Some (\<lbrace>True \<rbrace> \<acute>qbuf := \<acute>qbuf(ch_srcqport conf p := \<acute>qbuf (ch_srcqport conf p) @ [m]) ;;
+                                    \<lbrace>True \<rbrace> \<acute>qbufsize := \<acute>qbufsize (ch_srcqport conf p := Suc (\<acute>qbufsize (ch_srcqport conf p))))
                 sat\<^sub>p [\<lbrace>is_src_qport conf p \<and> (\<exists>y. \<acute>cur (c2s conf k) = Some y) \<and> 
                       port_of_part conf p (the (\<acute>cur (c2s conf k)))\<rbrace> \<inter> {V} \<inter>
                       \<lbrace>\<acute>qbufsize (ch_srcqport conf p) < chmax conf (ch_srcqport conf p)\<rbrace>, 
@@ -392,7 +392,7 @@ lemma Send_Que_Message_SatRG_h1: "\<turnstile> \<lbrace>True \<rbrace> \<acute>q
   done
 
 lemma Send_Que_Message_SatRG: 
-  " Send_Que_Message k p m \<turnstile> Send_Que_Message_RGCond k p m"
+  " \<Gamma> \<turnstile> Send_Que_Message k p m sat Send_Que_Message_RGCond k p m"
   apply(simp add:Evt_sat_RG_def)
   apply(simp add:Send_Que_Message_def)
   apply(rule BasicEvt)
@@ -409,12 +409,12 @@ lemma Send_Que_Message_SatRG:
         apply force
        apply simp
       apply (simp add: stable_def)+
-   apply(simp add: stable_def Send_Que_Message_RGCond_def Pre\<^sub>f_def Rely\<^sub>f_def getrgformula_def)
+   apply(simp add: stable_def Send_Que_Message_RGCond_def Pre\<^sub>f_def Rely\<^sub>f_def getrgformula_def stable_e_def)
   apply(simp add: Send_Que_Message_RGCond_def Guar\<^sub>f_def getrgformula_def)
   done
 
-lemma Recv_Que_Message_SatRG_h1: "\<turnstile> \<lbrace>True\<rbrace> \<acute>qbuf := \<acute>qbuf(ch_destqport conf p := tl (\<acute>qbuf (ch_destqport conf p)));;
-                         \<lbrace>True \<rbrace>\<acute>qbufsize := \<acute>qbufsize (ch_destqport conf p := \<acute>qbufsize (ch_destqport conf p) - Suc 0)
+lemma Recv_Que_Message_SatRG_h1: "\<turnstile>\<^sub>I Some (\<lbrace>True\<rbrace> \<acute>qbuf := \<acute>qbuf(ch_destqport conf p := tl (\<acute>qbuf (ch_destqport conf p)));;
+                         \<lbrace>True \<rbrace>\<acute>qbufsize := \<acute>qbufsize (ch_destqport conf p := \<acute>qbufsize (ch_destqport conf p) - Suc 0))
             sat\<^sub>p [\<lbrace>is_dest_qport conf p \<and> (\<exists>y. \<acute>cur (c2s conf k) = Some y) \<and> port_of_part conf p (the (\<acute>cur (c2s conf k)))\<rbrace> 
             \<inter> \<lbrace>0 < \<acute>qbufsize (ch_destqport conf p)\<rbrace> \<inter> {V}, {(s, t). s = t}, UNIV, 
             \<lbrace>\<acute>cur = cur V \<and> \<acute>partst = partst V \<and> (qbufsize V (ch_destqport conf p) = length (qbuf V (ch_destqport conf p)) 
@@ -442,7 +442,7 @@ lemma Recv_Que_Message_SatRG_h1: "\<turnstile> \<lbrace>True\<rbrace> \<acute>qb
      apply(simp add:stable_def)+
   done
 
-lemma Recv_Que_Message_SatRG: " Recv_Que_Message k p \<turnstile> Recv_Que_Message_RGCond k p"
+lemma Recv_Que_Message_SatRG: " \<Gamma> \<turnstile> Recv_Que_Message k p sat Recv_Que_Message_RGCond k p"
   apply(simp add:Evt_sat_RG_def)
   apply(simp add:Recv_Que_Message_def)
   apply(rule BasicEvt)
@@ -452,12 +452,12 @@ lemma Recv_Que_Message_SatRG: " Recv_Que_Message k p \<turnstile> Recv_Que_Messa
        apply(simp add: stable_def)+
     apply(rule allI)
   using Recv_Que_Message_SatRG_h1 apply fastforce
-  apply(simp add: stable_def Recv_Que_Message_RGCond_def Pre\<^sub>f_def Rely\<^sub>f_def getrgformula_def)
+  apply(simp add: stable_def Recv_Que_Message_RGCond_def Pre\<^sub>f_def Rely\<^sub>f_def getrgformula_def stable_e_def)
   apply(simp add: Recv_Que_Message_RGCond_def Guar\<^sub>f_def getrgformula_def)
   done
 
 lemma EvtSys1_on_core_SatRG: 
-  "\<forall>k. \<turnstile> fst (EvtSys1_on_Core_RGF k) sat\<^sub>s 
+  "\<forall>k. \<Gamma> \<turnstile> fst (EvtSys1_on_Core_RGF k) sat\<^sub>s 
        [Pre\<^sub>f (snd (EvtSys1_on_Core_RGF k)), 
        Rely\<^sub>f (snd (EvtSys1_on_Core_RGF k)), 
        Guar\<^sub>f (snd (EvtSys1_on_Core_RGF k)), 
@@ -549,12 +549,12 @@ lemma EvtSys1_on_core_SatRG:
   apply auto[1] 
   apply blast
   apply blast
-  apply (simp add:stable_def)
+  apply (simp add:stable_e_def)
   by simp
 
 
 lemma EvtSys_on_core_SatRG: 
-  "\<forall>k.  \<turnstile> fst (EvtSys_on_Core_RGF k) sat\<^sub>s 
+  "\<forall>k.  \<Gamma> \<turnstile> fst (EvtSys_on_Core_RGF k) sat\<^sub>s 
           [Pre\<^sub>f (snd (EvtSys_on_Core_RGF k)), 
            Rely\<^sub>f (snd (EvtSys_on_Core_RGF k)), 
            Guar\<^sub>f (snd (EvtSys_on_Core_RGF k)), 
@@ -574,7 +574,7 @@ lemma EvtSys_on_core_SatRG:
    apply(simp add:EvtSys1_on_Core_RGF_def Core_Init_RGCond_def Guar\<^sub>f_def getrgformula_def)
   by (simp add:EvtSys1_on_Core_RGF_def Core_Init_RGF_def Core_Init_RGCond_def Post\<^sub>e_def Pre\<^sub>f_def getrgformula_def)
 
-lemma spec_sat_rg: "\<forall>k. \<turnstile> fst (ARINCXKernel_Spec k) sat\<^sub>s [Pre\<^sub>e\<^sub>s (ARINCXKernel_Spec k),
+lemma spec_sat_rg: "\<forall>k. \<Gamma> \<turnstile> fst (ARINCXKernel_Spec k) sat\<^sub>s [Pre\<^sub>e\<^sub>s (ARINCXKernel_Spec k),
            Rely\<^sub>e\<^sub>s (ARINCXKernel_Spec k), Guar\<^sub>e\<^sub>s (ARINCXKernel_Spec k), Post\<^sub>e\<^sub>s (ARINCXKernel_Spec k)]"
   apply (simp add:ARINCXKernel_Spec_def Guar\<^sub>e\<^sub>s_def Guar\<^sub>f_def Post\<^sub>e\<^sub>s_def Post\<^sub>f_def Pre\<^sub>e\<^sub>s_def  Pre\<^sub>f_def Rely\<^sub>e\<^sub>s_def Rely\<^sub>f_def)
   by (metis EvtSys_on_core_SatRG Guar\<^sub>f_def Post\<^sub>f_def Pre\<^sub>f_def Rely\<^sub>f_def)
@@ -597,7 +597,7 @@ subsection \<open>Security Specification\<close>
 datatype Domain = P Part | S Sched | F 
 
 
-definition domevt :: "State  \<Rightarrow> (EventLabel, Core, State) event \<Rightarrow> Domain"
+definition domevt :: "State  \<Rightarrow> (EventLabel, Core, State, Prog) event \<Rightarrow> Domain"
   where "domevt s e \<equiv> let c = get_evt_core e in (let el = get_evt_el e in  
                          (if (el = Send_Que_MessageE \<or> el = Recv_Que_MessageE) 
                               \<and> (cur s) (c2s conf c) \<noteq> None
@@ -630,7 +630,7 @@ definition interf :: "Domain \<Rightarrow> Domain \<Rightarrow> bool" ("(_ \<lea
                          else if ch_conn2 conf d1 d2 then True
                          else False"
 
-definition noninterf1 :: "Domain \<Rightarrow> Domain \<Rightarrow> bool" ("(_ \<setminus>\<leadsto> _)" [70,71] 60)
+definition noninterf :: "Domain \<Rightarrow> Domain \<Rightarrow> bool" ("(_ \<setminus>\<leadsto> _)" [70,71] 60)
   where "u \<setminus>\<leadsto> v \<equiv> \<not> (u \<leadsto> v)"
 
 definition state_obs_sched :: "State \<Rightarrow> Sched \<Rightarrow> State"
@@ -668,9 +668,10 @@ lemma state_equiv_symmetric : "s \<sim> d \<sim> t \<Longrightarrow> t \<sim> d 
 lemma state_equiv_reflexive : "s \<sim> d \<sim> s"
   by (simp add:state_equiv_def)
 
-definition exec_step :: "(EventLabel, Core, State, Domain) action \<Rightarrow> 
- ((EventLabel, Core, State) pesconf \<times> (EventLabel, Core, State) pesconf) set"
-  where "exec_step a \<equiv> {(P,Q). (P -pes-(actk a)\<rightarrow> Q) \<and>((\<exists>e k. actk a = ((EvtEnt e)\<sharp>k) \<and> eventof a = e 
+
+definition exec_step :: "'Env \<Rightarrow> (EventLabel, Core, State, Prog, Domain) action \<Rightarrow> 
+ ((EventLabel, Core, State, Prog) pesconf \<times> (EventLabel, Core, State, Prog) pesconf) set"
+  where "exec_step \<Gamma> a \<equiv> {(P,Q). (\<Gamma> \<turnstile> P-pes-(actk a)\<rightarrow> Q) \<and>((\<exists>e k. actk a = ((EvtEnt e)\<sharp>k) \<and> eventof a = e 
                          \<and> domevt (gets P) e = domain a) \<or> (\<exists>c k. actk a = ((Cmd c)\<sharp>k) 
                          \<and> eventof a = (getx P) k \<and> domevt (gets P) (eventof a) = domain a))}"
 
@@ -707,7 +708,7 @@ lemma neq_sched_rdsamp: "Schedule k1 p1 \<noteq> Recv_Que_Message k2 p2"
 lemma neq_wrtsamp_rdsamp: "Send_Que_Message k1 p1 m \<noteq> Recv_Que_Message k2 p2"
   by (simp add:Recv_Que_Message_def Send_Que_Message_def get_evt_label_def)
 
-definition evtrgfset :: "((EventLabel, Core, State) event \<times> (State rgformula)) set"
+definition evtrgfset :: "((EventLabel, Core, State, Prog) event \<times> (State rgformula)) set"
   where "evtrgfset \<equiv> (\<Union>k.{(Core_Init k, Core_Init_RGCond k)})
                    \<union> (\<Union>(k, p).{(Schedule k p, Schedule_RGCond k p)})
                    \<union> (\<Union>(k, p, m).{(Send_Que_Message k p m, Send_Que_Message_RGCond k p m)})
@@ -755,7 +756,7 @@ lemma evtrgfset_eq_allevts_ARINCSpec: "all_evts ARINCXKernel_Spec = evtrgfset"
     ultimately show ?thesis using evtrgfset_def by presburger
   qed
 
-definition evtrgffun :: "(EventLabel, Core, State) event \<Rightarrow> (State rgformula) option"
+definition evtrgffun :: "(EventLabel, Core, State, Prog) event \<Rightarrow> (State rgformula) option"
   where "evtrgffun \<equiv> (\<lambda>e. Some (SOME rg. (e, rg)\<in>evtrgfset))"
 
 lemma evtrgffun_exist: "\<forall>e\<in>Domain evtrgfset. \<exists>ef\<in>evtrgfset. E\<^sub>e ef = e \<and> evtrgffun e = Some (snd ef)"
@@ -881,17 +882,45 @@ lemma all_basic_evts_arinc: "\<forall>ef\<in>all_evts ARINCXKernel_Spec. is_basi
 lemma bsc_evts_rgfs: "\<forall>erg\<in>all_evts (ARINCXKernel_Spec). (evtrgffun (E\<^sub>e erg))  = Some (snd erg)"
   using evtrgfset_func evtrgfset_eq_allevts_ARINCSpec by simp
 
-interpretation RG_InfoFlow C0 exec_step interf state_equiv state_obs domevt 
-  ARINCXKernel_Spec s0 x0 evtrgffun "paresys_spec ARINCXKernel_Spec"
-    using state_equiv_transitive state_equiv_reflexive state_equiv_symmetric exec_step_def 
-      C0_init all_basic_evts_arinc bsc_evts_rgfs spec_sat_rg spec_sat_init spec_rg_com
-    InfoFlow.intro[of state_equiv exec_step domevt]
-    RG_InfoFlow.intro[of exec_step state_equiv domevt C0 ARINCXKernel_Spec 
-                        s0 x0 evtrgffun "paresys_spec ARINCXKernel_Spec"]
-    RG_InfoFlow_axioms.intro[of C0 ARINCXKernel_Spec s0 x0 "paresys_spec ARINCXKernel_Spec" evtrgffun]
-    by (metis (no_types, lifting) insert_subset option.sel)
+
+interpretation PiCore_RG_IFS ptranI petranI None cpts_pI cpts_of_pI prog_validityI ann_preserves_p
+                            assume_pI commit_pI preserves_p rghoare_pI interf state_equiv domevt \<Gamma>
+                            C0 "exec_step \<Gamma>" state_obs ARINCXKernel_Spec s0 x0 evtrgffun 
+                            "paresys_spec ARINCXKernel_Spec"
+proof
+  show "\<forall>a b c u. a \<sim>u\<sim> b \<and> b \<sim>u\<sim> c \<longrightarrow> a \<sim>u\<sim> c"
+    using state_equiv_transitive by blast
+  show "\<forall>a b u. a \<sim>u\<sim> b \<longrightarrow> b \<sim>u\<sim> a"
+    using state_equiv_symmetric by blast
+  show "\<forall>a u. a \<sim>u\<sim> a"
+    by (simp add: state_equiv_reflexive)
+  show "C0 = (paresys_spec ARINCXKernel_Spec, s0, x0)"
+    using C0_init by blast
+  show "paresys_spec ARINCXKernel_Spec = paresys_spec ARINCXKernel_Spec" by simp
+  show "\<forall>ef\<in>all_evts ARINCXKernel_Spec. is_basicevt (E\<^sub>e ef)" 
+    using all_basic_evts_arinc by blast
+  show "\<forall>k. \<Gamma> \<turnstile> fst (ARINCXKernel_Spec k) sat\<^sub>s [Pre\<^sub>e\<^sub>s (ARINCXKernel_Spec k), Rely\<^sub>e\<^sub>s (ARINCXKernel_Spec k), 
+            Guar\<^sub>e\<^sub>s (ARINCXKernel_Spec k), Post\<^sub>e\<^sub>s (ARINCXKernel_Spec k)]"
+    by (simp add: spec_sat_rg)
+  show "\<forall>k. s0 \<in> Pre\<^sub>e\<^sub>s (ARINCXKernel_Spec k)"
+    using spec_sat_init by fastforce
+  show " \<forall>k j. j \<noteq> k \<longrightarrow> Guar\<^sub>e\<^sub>s (ARINCXKernel_Spec j) \<subseteq> Rely\<^sub>e\<^sub>s (ARINCXKernel_Spec k)"
+    using spec_rg_com by blast
+  show "\<forall>erg\<in>all_evts ARINCXKernel_Spec. the (evtrgffun (E\<^sub>e erg)) = snd erg"
+    using bsc_evts_rgfs by fastforce
+  show "\<And>a. exec_step \<Gamma> a \<equiv> {(P, Q). \<Gamma> \<turnstile> P -pes-actk a\<rightarrow> Q \<and>
+        ((\<exists>e k. actk a = EvtEnt e\<sharp>k \<and> eventof a = e \<and> domevt (gets P) e = domain a) \<or>
+        (\<exists>c k. actk a = Cmd c\<sharp>k \<and> eventof a = getx P k \<and> domevt (gets P) (eventof a) = domain a))}"
+    by (simp add: exec_step_def)
+qed
+
 
 subsection \<open>Proof of Events satisfy the UCs \<close>
+
+
+interpretation Anno_SIMP_IFS interf state_equiv domevt
+  by (simp add: Anno_SIMP_IFS_def state_equiv_def)
+
 
 lemma s0_update_help: "\<lbrakk>partst1 = partst2; qbufsize1 = qbufsize2 \<rbrakk> \<Longrightarrow> 
                       s0\<lparr> partst := partst1, qbufsize := qbufsize1 \<rparr> = s0\<lparr> partst := partst2, qbufsize := qbufsize2\<rparr>"
@@ -904,28 +933,31 @@ lemma Core_Init_sat_LRE:
   apply (simp add: domevt_def get_evt_core_def Core_Init_def label_def get_evt_el_def get_evt_label_def)
   apply (case_tac u, clarify)
     apply (case_tac "p2s conf x1 = c2s conf x")
-     apply (simp add: interf_def noninterf1_def)
+     apply (simp add: interf_def)
     apply (simp add: state_equiv_def state_obs_part_def, clarify)
-    apply (rule s0_update_help)
-     apply (metis bij_c2s bij_pointE)
+     apply (rule s0_update_help)
+      apply (simp add: interf_def noninterf_def)
   using obs_cap_equiv apply presburger
-   apply (simp add: vpeq_reflexive state_equiv_def state_obs_sched_def)
+    apply (smt (verit) State.fold_congs(3) State.update_convs(4) System_Init_def bij_c2s 
+    bij_pointE fst_conv obs_cap_equiv1 s0_init state_equiv_def state_obs.simps(1) state_obs_part_def)
+  using state_equiv_def state_obs.simps(2) state_obs_sched_def apply presburger
   by (simp add: state_equiv_def)
+
 
 lemma Schedule_sat_LRE: 
   "\<forall>u s1 s2 x p. (s1,s2) \<in> Guar\<^sub>f (Schedule_RGCond x p) 
                 \<longrightarrow> ((domevt s1 (Schedule x p)) \<setminus>\<leadsto> u \<longrightarrow> s1 \<sim>u\<sim> s2)"
-  apply (simp add: Schedule_RGCond_def Guar\<^sub>f_def getrgformula_def vpeq_reflexive, clarsimp)
+  apply (simp add: Schedule_RGCond_def Guar\<^sub>f_def getrgformula_def, clarsimp)
   apply (simp add: domevt_def get_evt_core_def Schedule_def label_def get_evt_el_def get_evt_label_def)
   apply (case_tac u)
     apply (simp add: state_equiv_def state_obs_part_def, clarsimp)
     apply (rule s0_update_help)
      apply (case_tac "p2s conf x1 = c2s conf x")
-      apply (simp add: interf_def noninterf1_def)
+      apply (simp add: interf_def noninterf_def)
      apply presburger
   using obs_cap_part_def apply presburger
    apply (simp add: state_equiv_def state_obs_sched_def)
-   apply (metis fun_upd_other interf_def noninterf1_def)
+   apply (metis fun_upd_other interf_def noninterf_def)
   using state_equiv_def by auto[1]
 
 
@@ -937,7 +969,7 @@ lemma ch_chonn_help1 : "\<lbrakk>port_of_part conf p y; c = ch_srcqport conf p; 
 
 lemma ch_chonn_help2 : "\<lbrakk>port_of_part conf p y; is_src_qport conf p; y \<noteq> p2p conf (chdest conf c); P y \<setminus>\<leadsto> P (p2p conf (chdest conf c))\<rbrakk>
           \<Longrightarrow> c \<noteq> ch_srcqport conf p"
-  using ch_chonn_help1 interf_def noninterf1_def by fastforce
+  using ch_chonn_help1 interf_def noninterf_def by fastforce
 
 lemma Send_Que_sat_LRE:
   "\<forall>u s1 s2 k. (s1,s2) \<in> Guar\<^sub>f (Send_Que_Message_RGCond x p m) 
@@ -945,10 +977,10 @@ lemma Send_Que_sat_LRE:
   apply (simp add: Send_Que_Message_RGCond_def Guar\<^sub>f_def getrgformula_def, clarsimp)
   apply (simp add: domevt_def get_evt_core_def Send_Que_Message_def label_def get_evt_el_def get_evt_label_def)
   apply (case_tac "(cur s1) (c2s conf x) = None")
-  apply (metis State.surjective old.unit.exhaust vpeq_reflexive)
+  apply (metis State.surjective old.unit.exhaust state_equiv_def)
   apply (case_tac u, clarsimp)
     apply (case_tac "is_src_qport conf p \<and> port_of_part conf p y", simp)
-     apply (metis ch_chonn_help2 interf_def noninterf1_def obs_cap_equiv state_equiv_def state_obs.simps(1) state_obs_part_def)
+     apply (metis ch_chonn_help2 interf_def noninterf_def obs_cap_equiv state_equiv_def state_obs.simps(1) state_obs_part_def)
     apply (simp add: state_equiv_def state_obs_def)
     apply (metis State.surjective old.unit.exhaust)
    apply (simp add: state_equiv_def state_obs_sched_def)
@@ -960,10 +992,10 @@ lemma Recv_Que_sat_LRE:
   apply (simp add: Recv_Que_Message_RGCond_def Guar\<^sub>f_def getrgformula_def, clarsimp)
   apply (simp add: domevt_def get_evt_core_def Recv_Que_Message_def label_def get_evt_el_def get_evt_label_def)
   apply (case_tac "(cur s1) (c2s conf x) = None")
-   apply (metis State.surjective old.unit.exhaust vpeq_reflexive)
+  apply (metis (mono_tags, lifting) State.surjective old.unit.exhaust state_equiv_def)
   apply (case_tac u)
     apply (case_tac "x1 = the ((cur s1) (c2s conf x))")
-  using interf_def noninterf1_def apply force
+  using interf_def noninterf_def apply force
     apply (simp add: state_equiv_def  state_obs_part_def)
     apply (rule s0_update_help)
      apply blast
@@ -1034,9 +1066,9 @@ qed
 
 
 
-lemma Core_Init_sat_SCE: "sc_p (the (body_e (Core_Init k))) (Core_Init k)"
-  apply (simp add: body_e_def Core_Init_def body_def sc_p.Basic)
-  apply (rule sc_p.Basic, clarsimp)
+lemma Core_Init_sat_SCE: "sc_p_sat (the (body_e (Core_Init k))) (Core_Init k)"
+  apply (simp add: body_e_def Core_Init_def body_def sc_p_sat.Basic)
+  apply (rule sc_p_sat.Basic, clarsimp)
   apply (case_tac u)
     apply (simp add: state_equiv_def state_obs_part_def)
     apply (simp add: System_Init_def s0_init)
@@ -1046,8 +1078,8 @@ lemma Core_Init_sat_SCE: "sc_p (the (body_e (Core_Init k))) (Core_Init k)"
   done
 
 lemma Schedule_sat_SCE_h1: " 
-        \<turnstile>\<lbrace>True \<rbrace>\<acute>partst := \<acute>partst(the (\<acute>cur (c2s conf k)) := READY);;
-         \<lbrace>True \<rbrace> \<acute>cur := \<acute>cur (c2s conf k := None) sat\<^sub>p 
+        \<turnstile>\<^sub>I Some (\<lbrace>True \<rbrace>\<acute>partst := \<acute>partst(the (\<acute>cur (c2s conf k)) := READY);;
+         \<lbrace>True \<rbrace> \<acute>cur := \<acute>cur (c2s conf k := None)) sat\<^sub>p 
         [\<lbrace>p2s conf p = c2s conf k \<and> p2s conf (the (\<acute>cur (c2s conf k))) = c2s conf k\<rbrace> \<inter> {V}, 
          {(s, t). s = t}, UNIV, \<lbrace>\<acute>qbuf = qbuf V \<and> \<acute>qbufsize = qbufsize V \<and> \<acute>cur = (cur V)(c2s conf k := None) 
         \<and> \<acute>partst = (partst V)(the (cur V (c2s conf k)) := READY) \<and> (\<forall>p. p2s conf p \<noteq> c2s conf k \<longrightarrow> \<acute>partst p = partst V p)\<rbrace>]"
@@ -1068,8 +1100,8 @@ lemma Schedule_sat_SCE_h1: "
    apply (simp add: stable_def)+
   by force
 
-lemma Schedule_sat_SCE_h2: "\<turnstile> \<lbrace>True \<rbrace> \<acute>cur := \<acute>cur(c2s conf k \<mapsto> p) ;;
-                         \<lbrace>True \<rbrace> \<acute>partst := \<acute>partst (p := RUN)
+lemma Schedule_sat_SCE_h2: "\<turnstile>\<^sub>I Some (\<lbrace>True \<rbrace> \<acute>cur := \<acute>cur(c2s conf k \<mapsto> p) ;;
+                         \<lbrace>True \<rbrace> \<acute>partst := \<acute>partst (p := RUN))
       sat\<^sub>p [\<lbrace>p2s conf p = c2s conf k \<and> \<acute>cur (c2s conf k) = None\<rbrace> \<inter>  {V}, {(s, t). s = t}, UNIV, 
             \<lbrace>\<acute>qbuf = qbuf V \<and> \<acute>qbufsize = qbufsize V \<and> \<acute>cur = (cur V)(c2s conf k \<mapsto> p) \<and> 
              \<acute>partst = (partst V)(the (\<acute>cur (c2s conf k)) := RUN) \<and> (\<forall>p. p2s conf p \<noteq> c2s conf k 
@@ -1088,14 +1120,14 @@ lemma Schedule_sat_SCE_h2: "\<turnstile> \<lbrace>True \<rbrace> \<acute>cur := 
      apply (simp add: stable_def)+
   by force
 
-lemma Schedule_sat_SCE: "sc_p (the (body_e (Schedule k p))) (Schedule k p)"
+lemma Schedule_sat_SCE: "sc_p_sat (the (body_e (Schedule k p))) (Schedule k p)"
   apply (simp add: body_def Schedule_def)
-  apply (rule sc_p.Seq)
-   apply (rule sc_p.Cond)
+  apply (rule sc_p_sat.Seq)
+   apply (rule sc_p_sat.Cond)
     apply (rule_tac pre = "\<lbrace>p2s conf p = c2s conf k \<and> p2s conf (the (\<acute>cur (c2s conf k))) = c2s conf k\<rbrace>" 
           and rely = Id and post = "\<lbrace>True\<rbrace>" and guar = "\<lbrace>\<ordfeminine>qbuf = \<ordmasculine>qbuf \<and> \<ordfeminine>qbufsize = \<ordmasculine>qbufsize \<and> 
           \<ordfeminine>cur = \<ordmasculine>cur(c2s conf k := None) \<and> \<ordfeminine>partst = \<ordmasculine>partst(the (\<ordmasculine>cur (c2s conf k)) := READY) \<and> 
-          (\<forall>p. p2s conf p \<noteq> c2s conf k \<longrightarrow> \<ordfeminine>partst  p = \<ordmasculine>partst p )\<rbrace>" in sc_p.Await)
+          (\<forall>p. p2s conf p \<noteq> c2s conf k \<longrightarrow> \<ordfeminine>partst  p = \<ordmasculine>partst p )\<rbrace>" in sc_p_sat.Await)
       apply (rule rghoare_p.Await, clarsimp)
         apply (simp add: stable_def)+
       apply (rule allI)
@@ -1110,11 +1142,11 @@ lemma Schedule_sat_SCE: "sc_p (the (body_e (Schedule k p))) (Schedule k p)"
       apply (metis obs_cap_equiv1 state_equiv_def state_obs.simps(1) state_obs_part_def)
      apply (simp add: System_Init_def s0_init state_equiv_def state_obs_sched_def)
   using state_equiv_def state_obs.simps(3) apply presburger
-   apply (rule sc_p.Basic, simp)
+   apply (rule sc_p_sat.Basic, simp)
     apply (rule_tac pre = "\<lbrace>p2s conf p = c2s conf k \<and> \<acute>cur (c2s conf k) = None\<rbrace>" 
           and rely = Id and post = "\<lbrace>True\<rbrace>" and guar = "\<lbrace>\<ordfeminine>qbuf = \<ordmasculine>qbuf \<and> \<ordfeminine>qbufsize = \<ordmasculine>qbufsize \<and>  
           \<ordfeminine>cur = \<ordmasculine>cur(c2s conf k := Some p) \<and> \<ordfeminine>partst = \<ordmasculine>partst(the (\<ordfeminine>cur(c2s conf k)) := RUN) \<and> 
-          (\<forall>p. p2s conf p \<noteq> c2s conf k \<longrightarrow> \<ordfeminine>partst  p = \<ordmasculine>partst p)\<rbrace>" in sc_p.Await)
+          (\<forall>p. p2s conf p \<noteq> c2s conf k \<longrightarrow> \<ordfeminine>partst  p = \<ordmasculine>partst p)\<rbrace>" in sc_p_sat.Await)
     apply (rule rghoare_p.Await, simp)
       apply (simp add: stable_def)+
     apply (rule allI)
@@ -1130,8 +1162,8 @@ lemma Schedule_sat_SCE: "sc_p (the (body_e (Schedule k p))) (Schedule k p)"
     apply (simp add: System_Init_def s0_init state_equiv_def state_obs_sched_def)
   using state_equiv_def state_obs.simps(3) by presburger
 
-lemma Send_Que_sat_SCE_h1: "\<turnstile> \<lbrace>True \<rbrace> \<acute>qbuf := \<acute>qbuf(ch_srcqport conf p := \<acute>qbuf (ch_srcqport conf p) @ [m]) ;;
-                              \<lbrace>True \<rbrace> \<acute>qbufsize := \<acute>qbufsize (ch_srcqport conf p := Suc (\<acute>qbufsize (ch_srcqport conf p)))
+lemma Send_Que_sat_SCE_h1: "\<turnstile>\<^sub>I Some (\<lbrace>True \<rbrace> \<acute>qbuf := \<acute>qbuf(ch_srcqport conf p := \<acute>qbuf (ch_srcqport conf p) @ [m]) ;;
+                              \<lbrace>True \<rbrace> \<acute>qbufsize := \<acute>qbufsize (ch_srcqport conf p := Suc (\<acute>qbufsize (ch_srcqport conf p))))
      sat\<^sub>p [\<lbrace>is_src_qport conf p \<and> (\<exists>y. \<acute>cur (c2s conf k) = Some y) \<and> port_of_part conf p (the (\<acute>cur (c2s conf k)))\<rbrace> 
             \<inter> {V} \<inter> \<lbrace>\<acute>qbufsize (ch_srcqport conf p) < chmax conf (ch_srcqport conf p)\<rbrace>, 
             {(s, t). s = t}, UNIV, \<lbrace>\<acute>cur = cur V \<and> \<acute>partst = partst V \<and> (is_src_qport conf p \<and> 
@@ -1162,8 +1194,7 @@ lemma Send_Que_sat_SCE_h1: "\<turnstile> \<lbrace>True \<rbrace> \<acute>qbuf :=
       apply(simp add:stable_def)+
   done
 
-
-lemma Send_Que_sat_SCE: "sc_p (the (body_e (Send_Que_Message k p m))) (Send_Que_Message k p m)"
+lemma Send_Que_sat_SCE: "sc_p_sat (the (body_e (Send_Que_Message k p m))) (Send_Que_Message k p m)"
   apply (simp add: body_def Send_Que_Message_def)
   apply (rule_tac pre = "\<lbrace>is_src_qport conf p \<and> (\<exists>y. \<acute>cur (c2s conf k) = Some y) \<and> port_of_part conf p (the (\<acute>cur (c2s conf k)))\<rbrace>" 
           and rely = Id and post = "\<lbrace>True\<rbrace>" and guar = "\<lbrace>\<ordfeminine>cur = \<ordmasculine>cur \<and> \<ordfeminine>partst = \<ordmasculine>partst \<and> 
@@ -1174,7 +1205,7 @@ lemma Send_Que_sat_SCE: "sc_p (the (body_e (Send_Que_Message k p m))) (Send_Que_
           (\<ordmasculine>qbufsize (ch_srcqport conf p) \<ge> chmax conf (ch_srcqport conf p) \<longrightarrow> 
           \<ordfeminine>qbuf = \<ordmasculine>qbuf \<and> \<ordfeminine>qbufsize  = \<ordmasculine>qbufsize)) \<and> ((\<not>(is_src_qport conf p \<and> 
           \<ordmasculine>cur ((c2s conf) k) \<noteq> None \<and> port_of_part conf p (the (\<ordmasculine>cur ((c2s conf) k)))))\<longrightarrow> 
-          (\<ordfeminine>qbuf  = \<ordmasculine>qbuf  \<and> \<ordfeminine>qbufsize  = \<ordmasculine>qbufsize))\<rbrace>" in sc_p.Await)
+          (\<ordfeminine>qbuf  = \<ordmasculine>qbuf  \<and> \<ordfeminine>qbufsize  = \<ordmasculine>qbufsize))\<rbrace>" in sc_p_sat.Await)
     apply (rule rghoare_p.Await, simp)
       apply (simp add: stable_def)+
     apply (rule allI)
@@ -1194,7 +1225,7 @@ lemma Send_Que_sat_SCE: "sc_p (the (body_e (Send_Que_Message k p m))) (Send_Que_
     apply (subgoal_tac "qbufsize s1 c = qbufsize s2 c")
      apply (case_tac "c = ch_srcqport conf p")
       apply (erule impE)
-       apply (metis ch_chonn_help2 interf_def noninterf1_def)
+       apply (metis ch_chonn_help2 interf_def noninterf_def)
       apply (case_tac "qbufsize s1 c < chmax conf (ch_srcqport conf p)", simp)
       apply (case_tac "qbufsize s2 c < chmax conf (ch_srcqport conf p)")
        apply linarith
@@ -1204,8 +1235,8 @@ lemma Send_Que_sat_SCE: "sc_p (the (body_e (Send_Que_Message k p m))) (Send_Que_
    apply (simp add: state_equiv_def state_obs_sched_def)
   using state_equiv_def state_obs.simps(3) by presburger
 
-lemma Recv_Que_sat_SCE_h1: "\<turnstile> \<lbrace>True\<rbrace> \<acute>qbuf := \<acute>qbuf(ch_destqport conf p := tl (\<acute>qbuf (ch_destqport conf p)));;
-                         \<lbrace>True \<rbrace>\<acute>qbufsize := \<acute>qbufsize (ch_destqport conf p := \<acute>qbufsize (ch_destqport conf p) - Suc 0)
+lemma Recv_Que_sat_SCE_h1: "\<turnstile>\<^sub>I Some (\<lbrace>True\<rbrace> \<acute>qbuf := \<acute>qbuf(ch_destqport conf p := tl (\<acute>qbuf (ch_destqport conf p)));;
+                         \<lbrace>True \<rbrace>\<acute>qbufsize := \<acute>qbufsize (ch_destqport conf p := \<acute>qbufsize (ch_destqport conf p) - Suc 0))
   sat\<^sub>p [\<lbrace>is_dest_qport conf p \<and> (\<exists>y. \<acute>cur (c2s conf k) = Some y) \<and> port_of_part conf p (the (\<acute>cur (c2s conf k)))\<rbrace> 
         \<inter> \<lbrace>0 < \<acute>qbufsize (ch_destqport conf p)\<rbrace> \<inter> {V}, {(s, t). s = t}, UNIV, \<lbrace>\<acute>cur = cur V \<and>
        \<acute>partst = partst V \<and> (is_dest_qport conf p \<and> (\<exists>y. cur V (c2s conf k) = Some y) \<and> 
@@ -1234,7 +1265,7 @@ lemma Recv_Que_sat_SCE_h1: "\<turnstile> \<lbrace>True\<rbrace> \<acute>qbuf := 
      apply(simp add:stable_def)+
   done
 
-lemma Recv_Que_sat_SCE: "sc_p (the (body_e (Recv_Que_Message k p))) (Recv_Que_Message k p )"
+lemma Recv_Que_sat_SCE: "sc_p_sat (the (body_e (Recv_Que_Message k p))) (Recv_Que_Message k p )"
   apply (simp add: body_def Recv_Que_Message_def)
   apply (rule_tac pre = "\<lbrace>is_dest_qport conf p \<and> (\<exists>y. \<acute>cur (c2s conf k) = Some y) \<and> port_of_part conf p (the (\<acute>cur (c2s conf k)))\<rbrace>" 
           and rely = Id and post = "\<lbrace>True\<rbrace>" and guar = "\<lbrace>\<ordfeminine>cur = \<ordmasculine>cur \<and> \<ordfeminine>partst = \<ordmasculine>partst \<and> 
@@ -1243,7 +1274,7 @@ lemma Recv_Que_sat_SCE: "sc_p (the (body_e (Recv_Que_Message k p))) (Recv_Que_Me
           (\<ordmasculine>qbufsize (ch_destqport conf p) > 0 \<longrightarrow> \<ordfeminine>qbufsize (ch_destqport conf p) = \<ordmasculine>qbufsize (ch_destqport conf p) - 1) \<and>
           (\<ordmasculine>qbufsize (ch_destqport conf p) = 0 \<longrightarrow> \<ordfeminine>qbuf = \<ordmasculine>qbuf \<and> \<ordfeminine>qbufsize  = \<ordmasculine>qbufsize)) 
           \<and> ((\<not>(is_dest_qport conf p \<and> \<ordmasculine>cur ((c2s conf) k) \<noteq> None \<and> port_of_part conf p (the (\<ordmasculine>cur ((c2s conf) k)))))
-          \<longrightarrow> (\<ordfeminine>qbuf  = \<ordmasculine>qbuf  \<and> \<ordfeminine>qbufsize  = \<ordmasculine>qbufsize))\<rbrace>" in sc_p.Await)
+          \<longrightarrow> (\<ordfeminine>qbuf  = \<ordmasculine>qbuf  \<and> \<ordfeminine>qbufsize  = \<ordmasculine>qbufsize))\<rbrace>" in sc_p_sat.Await)
     apply (rule rghoare_p.Await, simp)
       apply (simp add: stable_def)+
     apply (rule allI)
@@ -1261,7 +1292,7 @@ lemma Recv_Que_sat_SCE: "sc_p (the (body_e (Recv_Que_Message k p))) (Recv_Que_Me
    apply (simp add: state_equiv_def state_obs_sched_def)
   using state_equiv_def state_obs.simps(3) by presburger
 
-lemma uwce_SCE_help: "\<forall>k. ef \<in> all_evts_es (fst (ARINCXKernel_Spec k)) \<longrightarrow> sc_p (the (body_e (E\<^sub>e ef))) (E\<^sub>e ef)"
+lemma uwce_SCE_help: "\<forall>k. ef \<in> all_evts_es (fst (ARINCXKernel_Spec k)) \<longrightarrow> sc_p \<Gamma> (the (body_e (E\<^sub>e ef))) (E\<^sub>e ef)"
   proof -
   {
     fix k
@@ -1270,11 +1301,11 @@ lemma uwce_SCE_help: "\<forall>k. ef \<in> all_evts_es (fst (ARINCXKernel_Spec k
     then have "ef\<in>insert (Core_Init_RGF k) (all_evts_es (fst (EvtSys1_on_Core_RGF k)))" 
       by (simp add:EvtSys_on_Core_RGF_def)
     then have "ef = (Core_Init_RGF k) \<or> ef\<in>all_evts_es (fst (EvtSys1_on_Core_RGF k))" by auto
-    then have "sc_p (the (body_e (E\<^sub>e ef))) (E\<^sub>e ef)"
+    then have "sc_p \<Gamma> (the (body_e (E\<^sub>e ef))) (E\<^sub>e ef)"
       proof
         assume a0: "ef = Core_Init_RGF k"
-        then show ?thesis 
-          by (simp add: Core_Init_RGF_def Core_Init_sat_SCE E\<^sub>e_def)  
+        then show ?thesis
+          by (simp add: Core_Init_RGF_def Core_Init_sat_SCE E\<^sub>e_def sc_p_sound)
       next
         assume a1: "ef\<in>all_evts_es (fst (EvtSys1_on_Core_RGF k))"
         then have "ef\<in>{ef. \<exists>p. ef = Schedule_RGF k p} \<union>
@@ -1290,7 +1321,7 @@ lemma uwce_SCE_help: "\<forall>k. ef \<in> all_evts_es (fst (ARINCXKernel_Spec k
             then have "\<exists>p. ef = Schedule_RGF k p" by auto
             then obtain p where "ef = Schedule_RGF k p" by auto
             then show ?thesis 
-              by (simp add: E\<^sub>e_def Schedule_RGF_def Schedule_sat_SCE) 
+              by (simp add: E\<^sub>e_def Schedule_RGF_def Schedule_sat_SCE sc_p_sound)
           next
             assume "ef\<in>{ef. \<exists>p m. ef = Send_Que_Message_RGF k p m}
                     \<or> ef\<in>{ef. \<exists>p. ef = Recv_Que_Message_RGF k p}"
@@ -1300,13 +1331,13 @@ lemma uwce_SCE_help: "\<forall>k. ef \<in> all_evts_es (fst (ARINCXKernel_Spec k
                 then have "\<exists>p m. ef = Send_Que_Message_RGF k p m" by auto
                 then obtain p and m where "ef = Send_Que_Message_RGF k p m" by auto
                 then show ?thesis 
-                  by (simp add: E\<^sub>e_def Send_Que_Message_RGF_def Send_Que_sat_SCE)
+                  by (simp add: E\<^sub>e_def Send_Que_Message_RGF_def Send_Que_sat_SCE sc_p_sound)
               next
                 assume "ef\<in>{ef. \<exists>p. ef = Recv_Que_Message_RGF k p}"
                 then have "\<exists>p. ef = Recv_Que_Message_RGF k p" by auto
                 then obtain p where "ef = Recv_Que_Message_RGF k p" by auto
                 then show ?thesis 
-                  by (simp add: E\<^sub>e_def Recv_Que_Message_RGF_def Recv_Que_sat_SCE)
+                  by (simp add: E\<^sub>e_def Recv_Que_Message_RGF_def Recv_Que_sat_SCE sc_p_sound)
               qed
           qed
       qed
@@ -1314,27 +1345,40 @@ lemma uwce_SCE_help: "\<forall>k. ef \<in> all_evts_es (fst (ARINCXKernel_Spec k
   then show ?thesis by auto
 qed
 
-theorem uwc_oc: "observed_consistent"
-  apply(simp add:observed_consistent_def)
+interpretation PiCore_IFS.InfoFlow ptranI petranI None \<Gamma> C0 "exec_step \<Gamma>" interf state_equiv state_obs domevt
+proof
+  show "\<forall>a b c u. a \<sim>u\<sim> b \<and> b \<sim>u\<sim> c \<longrightarrow> a \<sim>u\<sim> c"
+    using state_equiv_def by presburger
+  show "\<forall>a b u. a \<sim>u\<sim> b \<longrightarrow> b \<sim>u\<sim> a"
+    using simp_vpeq_sym by blast
+  show "\<forall>a u. a \<sim>u\<sim> a"
+    by (simp add: simp_vpeq_refl)
+  show "\<And>a. exec_step \<Gamma> a \<equiv> {(P, Q). \<Gamma> \<turnstile> P -pes-actk a\<rightarrow> Q \<and>
+       ((\<exists>e k. actk a = EvtEnt e\<sharp>k \<and> eventof a = e \<and> domevt (gets P) e = domain a) \<or>
+       (\<exists>c k. actk a = Cmd c\<sharp>k \<and> eventof a = getx P k \<and> domevt (gets P) (eventof a) = domain a))}"
+    by (simp add: exec_step_def)
+qed
+
+lemma uwc_oc: "observed_consistentC"
+  apply(simp add:observed_consistentC_def)
   by(simp add:state_equiv_def)
 
-
-theorem uwce_LRE: "locally_respect_events"
-  apply (simp add: locally_respect_events_def all_evts_def, clarify)
+lemma uwc_lr: "InfoFlow.local_respectC C0 (exec_step \<Gamma>) interf state_equiv"
+  apply (rule rg_lr_imp_lr)
+  apply (simp add: local_respect_events_def all_evts_def, clarify)
   using all_evts_def[of ARINCXKernel_Spec] uwce_LRE_help 
-  using noninterf1_def noninterf_def by blast
-                                               
+  using noninterf_def  by blast
 
-theorem uwce_SCE: "step_consistent_events"
-  apply (simp add: step_consistent_events_def)
-  using all_evts_def[of ARINCXKernel_Spec] uwce_SCE_help by auto
+lemma uwc_sc: "InfoFlow.weak_step_consistentC C0 (exec_step \<Gamma>) interf state_equiv"
+  apply (rule rg_sc_imp_sc)
+  apply (simp add: step_consistent_events_def all_evts_def, clarify)
+  using all_evts_def[of ARINCXKernel_Spec] uwce_SCE_help
+  using noninterf_def by metis
 
-theorem "nonleakage"
-  using UnwindingTheoremE_nonleakage uwc_oc uwce_SCE by blast
+lemma "SM_IFS.nonleakage C0 (exec_step \<Gamma>) domain obsC vpeqC interf"
+  by (simp add: PiCore_nonleakage uwc_oc uwc_sc)
 
-theorem "noninfluence0"
-  using uwc_oc uwce_LRE uwce_SCE UnwindingTheoremE_noninfluence0 by simp
-
-
+theorem "SM_IFS.noninfluence0 C0 (exec_step \<Gamma>) domain obsC vpeqC interf"
+  by (simp add: PiCore_noninfluence0 uwc_lr uwc_oc uwc_sc)
 
 end

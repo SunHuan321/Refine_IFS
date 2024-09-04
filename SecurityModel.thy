@@ -16,8 +16,6 @@ assumes vpeq_transitive : "\<forall> a b c u. (a \<sim> u \<sim> b) \<and> (b \<
     and vpeq_reflexive : "\<forall> a u. (a \<sim> u \<sim> a)"
 begin
 
-definition noninterf :: "'d \<Rightarrow> 'd \<Rightarrow> bool" ("(_ \<setminus>\<leadsto> _)" [70,71] 60)
-  where "u \<setminus>\<leadsto> v \<equiv> \<not> (u \<leadsto> v)"
 
 
 definition ivpeq :: "'s \<Rightarrow> 'd set \<Rightarrow> 's \<Rightarrow> bool" ("(_ \<approx> _ \<approx> _)" [70,71] 60)

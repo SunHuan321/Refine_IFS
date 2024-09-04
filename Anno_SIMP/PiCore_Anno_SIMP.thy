@@ -69,7 +69,7 @@ interpretation event_comp ptranI petranI None cpts_pI cpts_of_pI
   apply(simp add: ptran'_def) by blast
 
 lemma prog_validity_defI: "prog_validityI \<Gamma> P pre rely guar post \<Longrightarrow> 
-   \<forall>s. cpts_of_pI \<Gamma> P s \<inter> assume_pI \<Gamma> (pre, rely) \<subseteq> commit_pI \<Gamma> (guar, post)"
+   \<forall>s. cpts_of_pI \<Gamma> P s \<inter> assume_pI \<Gamma> (pre, rely) \<subseteq> commit_pI \<Gamma> (guar, post) \<inter> preserves_p"
   by (simp add: prog_validity_def)
 
 lemma assume_p_defI: "snd (c!0) \<in> pre \<and> (\<forall>i. Suc i<length c \<longrightarrow> 
@@ -115,6 +115,15 @@ abbreviation simp_rghoare_e :: "'Env \<Rightarrow> ('l, 'k, 's, 's ann_prog opti
 ("_ \<turnstile> _ sat\<^sub>e [_, _, _, _]" [60,60,0,0,0,0] 45)
   where "simp_rghoare_e \<equiv> rghoare_e"
 
+abbreviation simp_rghoare_es :: "'Env \<Rightarrow> ('l, 'k, 's, 's ann_prog option) rgformula_ess \<Rightarrow> 's set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> 's set \<Rightarrow> bool" 
+("_ \<turnstile> _ sat\<^sub>s [_, _, _, _]" [60,60,0,0,0,0] 45)
+where "simp_rghoare_es \<equiv> rghoare_es"
+
+abbreviation simp_pestran :: "'Env \<Rightarrow> ('l,'k,'s, 's ann_prog option) pesconf \<Rightarrow> ('l,'k,'s,'s ann_prog option ) actk 
+                            \<Rightarrow> ('l,'k,'s,'s ann_prog option) pesconf \<Rightarrow> bool"  ("_ \<turnstile> _ -pes-_\<rightarrow> _" [70,70] 60)
+  where "simp_pestran \<equiv> pestran"
+
+thm ptran_def
 end
 
 
