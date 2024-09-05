@@ -774,7 +774,7 @@ proof-
   obtain pes\<^sub>c s\<^sub>c x\<^sub>c pes\<^sub>c' s\<^sub>c' x\<^sub>c' where a5: "C\<^sub>c = (pes\<^sub>c ,s\<^sub>c ,x\<^sub>c) \<and> C\<^sub>c' = (pes\<^sub>c', s\<^sub>c', x\<^sub>c')" 
     by (meson Sim.Event\<^sub>c.pesconf_trip)
   with a2 a3 have a6: "(\<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c ,s\<^sub>c ,x\<^sub>c) -pes-(Cmd P\<^sub>c)\<sharp>k \<rightarrow> (pes\<^sub>c', s\<^sub>c', x\<^sub>c')) \<and> (x\<^sub>c k = e\<^sub>c)"
-    by (simp add: InfoFlow\<^sub>c.step_def get_actk_def getx_def)
+    by (simp add: InfoFlow\<^sub>c.info_step_def get_actk_def getx_def)
   then have a7: "x\<^sub>c = x\<^sub>c'"
     by (meson Sim.Event\<^sub>c.act_in_pes_notchgstate)
 
@@ -803,7 +803,7 @@ proof-
     obtain pes\<^sub>c s\<^sub>c x\<^sub>c pes\<^sub>c' s\<^sub>c' x\<^sub>c' where b3: "C\<^sub>c = (pes\<^sub>c ,s\<^sub>c ,x\<^sub>c) \<and> C\<^sub>c' = (pes\<^sub>c', s\<^sub>c', x\<^sub>c')" 
       by (meson Sim.Event\<^sub>c.pesconf_trip)
     with a2 b0 have b4: "(\<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c ,s\<^sub>c ,x\<^sub>c) -pes-(Cmd P\<^sub>c)\<sharp>k \<rightarrow> (pes\<^sub>c', s\<^sub>c', x\<^sub>c')) \<and> (x\<^sub>c k = e\<^sub>c) \<and> (dome\<^sub>c s\<^sub>c e\<^sub>c = d)"
-      apply (simp add: InfoFlow\<^sub>c.step_def get_actk_def gets_def getx_def)
+      apply (simp add: InfoFlow\<^sub>c.info_step_def get_actk_def gets_def getx_def)
       by blast
     obtain pes\<^sub>a s\<^sub>a x\<^sub>a where b5: "C\<^sub>a = (pes\<^sub>a, s\<^sub>a, x\<^sub>a)" by (meson Sim.Event\<^sub>c.pesconf_trip)
     with a1 b1 b3 b4 have "\<exists>pes\<^sub>a' s\<^sub>a'. (\<Gamma>\<^sub>a \<turnstile>\<^sub>a (pes\<^sub>a, s\<^sub>a, x\<^sub>a) -pes-((Cmd P\<^sub>a)\<sharp>k)\<rightarrow> (pes\<^sub>a', s\<^sub>a', x\<^sub>a))
@@ -825,7 +825,7 @@ proof-
       by (metis Sim.Event\<^sub>a.act_in_pes_notchgstate Sim.Event\<^sub>a.event_axioms action.select_convs(1) 
          action.select_convs(2)  event.pesconf_trip get_actk_def)
     with b5 b6 have "(C\<^sub>a, (pes\<^sub>a', s\<^sub>a', x\<^sub>a)) \<in> step\<^sub>a a\<^sub>a"
-      using InfoFlow\<^sub>a.step_def by fastforce
+      using InfoFlow\<^sub>a.info_step_def by fastforce
     with b3 b4 b6 show ?thesis
       by (metis Sim.Event\<^sub>c.event_axioms event.act_in_pes_notchgstate sim_s_def)
   next
@@ -838,7 +838,7 @@ proof-
     obtain pes\<^sub>c s\<^sub>c x\<^sub>c pes\<^sub>c' s\<^sub>c' x\<^sub>c' where b3: "C\<^sub>c = (pes\<^sub>c ,s\<^sub>c ,x\<^sub>c) \<and> C\<^sub>c' = (pes\<^sub>c', s\<^sub>c', x\<^sub>c')" 
       by (meson Sim.Event\<^sub>c.pesconf_trip)
     with b0 a2 have b4: "(\<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c ,s\<^sub>c ,x\<^sub>c) -pes-(EvtEnt e\<^sub>c)\<sharp>k \<rightarrow> (pes\<^sub>c', s\<^sub>c', x\<^sub>c')) \<and> ec = e\<^sub>c \<and> dome\<^sub>c s\<^sub>c e\<^sub>c = d"
-      by (simp add: InfoFlow\<^sub>c.step_def get_actk_def gets_def getx_def)
+      by (simp add: InfoFlow\<^sub>c.info_step_def get_actk_def gets_def getx_def)
     then have b5: "s\<^sub>c = s\<^sub>c'"
       by (metis Sim.Event\<^sub>c.evtent_in_pes_notchgstate)
     obtain pes\<^sub>a s\<^sub>a x\<^sub>a where b6: "C\<^sub>a = (pes\<^sub>a, s\<^sub>a, x\<^sub>a)" by (meson Sim.Event\<^sub>c.pesconf_trip)
@@ -857,7 +857,7 @@ proof-
     with b1 have "actk a\<^sub>a = (EvtEnt (\<eta> e\<^sub>c))\<sharp>k \<and> eventof a\<^sub>a = \<eta> e\<^sub>c \<and> dome\<^sub>a (gets C\<^sub>a) (\<eta> e\<^sub>c) = domain a\<^sub>a"
       by (simp add: get_actk_def)
     with b6 b7 have "(C\<^sub>a, (pes\<^sub>a', s\<^sub>a, x\<^sub>a')) \<in> step\<^sub>a a\<^sub>a"
-      using InfoFlow\<^sub>a.step_def by auto
+      using InfoFlow\<^sub>a.info_step_def by auto
     with b3 b5 b7 show ?thesis
       using  sim_s_def by blast
   qed
