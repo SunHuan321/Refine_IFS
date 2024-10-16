@@ -28,7 +28,7 @@ locale PiCore_Refine =
   and obs\<^sub>a :: "'s\<^sub>a \<Rightarrow> 'd \<Rightarrow> 'o\<^sub>a" 
   and dome\<^sub>a :: "'s\<^sub>a \<Rightarrow> ('l\<^sub>a, 'k\<^sub>a, 's\<^sub>a, 'prog\<^sub>a) event \<Rightarrow> 'd" +
 fixes sim_s ::  "('l\<^sub>c,'k\<^sub>c,'s\<^sub>c,'prog\<^sub>c) pesconf \<Rightarrow> ('l\<^sub>a, 'k\<^sub>a, 's\<^sub>a, 'prog\<^sub>a) pesconf \<Rightarrow> bool" ("(_ \<sim> _)" [70,70] 60)
-  and sim_a :: "('l\<^sub>c, 'k\<^sub>c, 's\<^sub>c, 'prog\<^sub>c, 'd) action \<Rightarrow> ('l\<^sub>a, 'k\<^sub>a, 's\<^sub>a, 'prog\<^sub>a, 'd) action option"
+  and sim_a :: "('l\<^sub>c, 'k\<^sub>c, 's\<^sub>c, 'prog\<^sub>c, 'd) action \<rightharpoonup> ('l\<^sub>a, 'k\<^sub>a, 's\<^sub>a, 'prog\<^sub>a, 'd) action"
 assumes
   init_sim : " C0\<^sub>c \<sim> C0\<^sub>a" and
   action_refine : "\<lbrakk>sim_a a\<^sub>c = Some a\<^sub>a; InfoFlow\<^sub>c.reachableC0 C\<^sub>c; C\<^sub>c \<sim> C\<^sub>a; (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c\<rbrakk> \<Longrightarrow> 

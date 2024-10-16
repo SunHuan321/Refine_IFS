@@ -128,6 +128,12 @@ where
                 \<Longrightarrow> \<Gamma> \<turnstile> (BasicEvent e, s, x) -et-(EvtEnt (BasicEvent e))\<sharp>k\<rightarrow> ((AnonyEvent P), s, x')"
 (* we add P \<noteq> fin_com on 2019-01-31 *)
 
+lemma none_no_trane: "(\<Gamma> \<turnstile> (AnonyEvent fin_com,s) -et-e\<rightarrow> Q) \<Longrightarrow> False"
+  apply (erule etran.cases, simp_all)
+  by (simp add: none_no_tran)
+  
+
+
 subsection \<open>Semantics of Event Systems\<close>
 
 inductive estran :: "'Env \<Rightarrow> ('l,'k,'s,'prog) esconf \<Rightarrow> ('l,'k,'s,'prog) actk \<Rightarrow> ('l,'k,'s,'prog) esconf \<Rightarrow> bool"  

@@ -1,5 +1,5 @@
 theory ARINC653_MultiCore_Que
-  imports PiCore_Anno_SIMP_Syntax "../PiCore_RG_IFS" Anno_SIMP_IFS
+  imports PiCore_SIMP_Syntax "../PiCore_RG_IFS"
 begin
 
 subsection \<open>functional specification\<close>
@@ -51,8 +51,10 @@ definition ch_destqport :: "Config \<Rightarrow> Port \<Rightarrow> QChannel"
 datatype PartMode = IDLE | READY | RUN
 
 record State = cur :: "Sched \<Rightarrow> Part option"
+               qlock :: "QChannel \<Rightarrow> Core option"
                qbuf :: "QChannel \<Rightarrow> Message list"
                qbufsize :: "QChannel \<Rightarrow> nat"
+               rflag :: "Core \<Rightarrow> bool"
                partst :: "Part \<Rightarrow> PartMode"
 
 datatype EL = Core_InitE | ScheduleE | Send_Que_MessageE |  Recv_Que_MessageE
@@ -60,7 +62,7 @@ datatype EL = Core_InitE | ScheduleE | Send_Que_MessageE |  Recv_Que_MessageE
 datatype parameter = Port Port | Message Message | Partition Part
 
 type_synonym EventLabel = "EL \<times> (parameter list \<times> Core)" 
-type_synonym Prog = "State ann_prog option"
+type_synonym Prog = "State com option"
 
 definition get_evt_label :: "EL \<Rightarrow> parameter list \<Rightarrow> Core \<Rightarrow> EventLabel" ("_ _ \<rhd> _" [0,0,0] 20)
   where "get_evt_label el ps k \<equiv> (el,(ps,k))"
@@ -74,15 +76,16 @@ definition get_evt_el :: "(EventLabel, Core, State, Prog) event \<Rightarrow> EL
 definition Core_Init :: "Core \<Rightarrow> (EventLabel, Core, State, Prog) event" 
   where "Core_Init k \<equiv> 
     EVENT Core_InitE [] \<rhd> k 
-    THEN 
-      \<lbrace>\<forall>p. p2s conf p = c2s conf k \<longrightarrow> \<acute>partst p = IDLE\<rbrace>
-      \<acute>partst := (\<lambda>p. if p2s conf p = c2s conf k \<and> \<acute>partst p = IDLE then READY else \<acute>partst p) 
+    THEN      
+      (\<acute>partst := (\<lambda>p. if p2s conf p = c2s conf k \<and> \<acute>partst p = IDLE then READY else \<acute>partst p)) 
     END"
 
 definition System_Init :: "Config \<Rightarrow> (State \<times> (EventLabel, Core, State, Prog) x)"
-  where "System_Init cfg \<equiv> (\<lparr>cur=(\<lambda>c. None ),
+  where "System_Init cfg \<equiv> (\<lparr>cur=(\<lambda>s. None),
+                            qlock = (\<lambda>c. None),
                             qbuf = (\<lambda>c. []),
                             qbufsize = (\<lambda>c. 0),
+                            rflag = (\<lambda>C. False),
                             partst = (\<lambda>p. IDLE)\<rparr>, 
                             (\<lambda>k. Core_Init k))"
 
@@ -93,23 +96,18 @@ definition Schedule :: "Core \<Rightarrow> Part \<Rightarrow> (EventLabel, Core,
       p2s conf p = c2s conf k \<and> (\<acute>partst p \<noteq> IDLE) \<and> (\<acute>cur (c2s conf k) = None 
           \<or> p2s conf (the (\<acute>cur((c2s conf) k))) = c2s conf k)
     THEN
-      \<lbrace>p2s conf p = c2s conf k \<and> (\<acute>partst p \<noteq> IDLE) \<and> (\<acute>cur((c2s conf) k) = None \<or> p2s conf (the (\<acute>cur((c2s conf) k))) = c2s conf k)\<rbrace> 
-        IF (\<acute>cur((c2s conf) k) \<noteq> None) THEN 
-        \<lbrace>p2s conf p = c2s conf k  \<and> p2s conf (the (\<acute>cur((c2s conf) k))) = c2s conf k\<rbrace> 
+        IF (\<acute>cur((c2s conf) k) \<noteq> None) THEN    
               ATOMIC
-          \<lbrace>True\<rbrace> \<acute>partst := \<acute>partst(the (\<acute>cur ((c2s conf) k)) := READY);;
-          \<lbrace>True\<rbrace> \<acute>cur := \<acute>cur((c2s conf) k := None)
+           \<acute>partst := \<acute>partst(the (\<acute>cur ((c2s conf) k)) := READY);;
+           \<acute>cur := \<acute>cur((c2s conf) k := None)
                END
-            FI;;
-      
-      (\<lbrace>p2s conf p = c2s conf k \<and> \<acute>cur(c2s conf k) = None \<rbrace>
-         ATOMIC
-        \<lbrace>True\<rbrace> \<acute>cur := \<acute>cur((c2s conf k) := Some p);;
-        \<lbrace>True\<rbrace> \<acute>partst := \<acute>partst(p := RUN)
+            FI;;  
+
+      (ATOMIC
+         \<acute>cur := \<acute>cur((c2s conf k) := Some p);;
+         \<acute>partst := \<acute>partst(p := RUN)
         END)
-
     END"
-
 
 definition Send_Que_Message :: "Core \<Rightarrow> Port \<Rightarrow> Message \<Rightarrow> (EventLabel, Core, State, Prog) event" 
   where "Send_Que_Message k p m \<equiv> 
@@ -119,15 +117,15 @@ definition Send_Que_Message :: "Core \<Rightarrow> Port \<Rightarrow> Message \<
       \<and> \<acute>cur (c2s conf k) \<noteq> None
       \<and> port_of_part conf p (the (\<acute>cur (c2s conf k)))
     THEN
-     \<lbrace>is_src_qport conf p \<and> \<acute>cur (c2s conf k) \<noteq> None \<and> port_of_part conf p (the (\<acute>cur (c2s conf k)))\<rbrace> 
-     ATOMIC
-     \<lbrace>True\<rbrace> IF \<acute>qbufsize (ch_srcqport conf p) < chmax conf (ch_srcqport conf p) THEN 
-     \<lbrace>True\<rbrace> \<acute>qbuf := \<acute>qbuf (ch_srcqport conf p := \<acute>qbuf (ch_srcqport conf p) @ [m]);;
-     \<lbrace>True\<rbrace> \<acute>qbufsize := \<acute>qbufsize (ch_srcqport conf p := \<acute>qbufsize (ch_srcqport conf p) + 1)
-            FI
-      END
+      AWAIT \<acute>qlock (ch_destqport conf p) = None THEN
+        \<acute>qlock := \<acute>qlock (ch_destqport conf p := Some k) 
+      END;;
+      IF \<acute>qbufsize (ch_srcqport conf p) < chmax conf (ch_srcqport conf p) THEN 
+        \<acute>qbuf := \<acute>qbuf (ch_srcqport conf p := \<acute>qbuf (ch_srcqport conf p) @ [m]);;
+        \<acute>qbufsize := \<acute>qbufsize (ch_srcqport conf p := \<acute>qbufsize (ch_srcqport conf p) + 1)
+      FI;;
+      \<acute>qlock := \<acute>qlock (ch_destqport conf p := None)
     END"
-
 
 definition Recv_Que_Message :: "Core \<Rightarrow> Port \<Rightarrow> (EventLabel, Core, State, Prog) event" 
   where "Recv_Que_Message k p \<equiv> 
@@ -137,11 +135,18 @@ definition Recv_Que_Message :: "Core \<Rightarrow> Port \<Rightarrow> (EventLabe
       \<and> \<acute>cur (c2s conf k) \<noteq> None
       \<and> port_of_part conf p (the (\<acute>cur (c2s conf k)))
     THEN 
-        \<lbrace>is_dest_qport conf p  \<and> \<acute>cur (c2s conf k) \<noteq> None \<and> port_of_part conf p (the (\<acute>cur ((c2s conf) k))) \<rbrace>
-        AWAIT \<acute>qbufsize (ch_destqport conf p) > 0 THEN 
-          \<lbrace>True\<rbrace> \<acute>qbuf := \<acute>qbuf (ch_destqport conf p := tl (\<acute>qbuf (ch_destqport conf p)));;
-          \<lbrace>True\<rbrace> \<acute>qbufsize := \<acute>qbufsize (ch_destqport conf p := \<acute>qbufsize (ch_destqport conf p) - 1)
-        END
+    \<acute>rflag := \<acute>rflag (k := False);;
+    WHILE \<not> (\<acute>rflag k) DO
+      AWAIT \<acute>qlock (ch_destqport conf p) = None THEN
+        \<acute>qlock := \<acute>qlock (ch_destqport conf p := Some k)
+      END;;
+      IF \<acute>qbufsize (ch_srcqport conf p) > 0 THEN 
+        \<acute>qbuf := \<acute>qbuf (ch_destqport conf p := tl (\<acute>qbuf (ch_destqport conf p)));;
+        \<acute>qbufsize := \<acute>qbufsize (ch_destqport conf p := \<acute>qbufsize (ch_destqport conf p) - 1);;
+        \<acute>rflag := \<acute>rflag (k := True)
+      FI;;
+      \<acute>qlock := \<acute>qlock (ch_destqport conf p := None)
+      OD
     END"
 
 subsection \<open>Rely-guarantee condition of events\<close>

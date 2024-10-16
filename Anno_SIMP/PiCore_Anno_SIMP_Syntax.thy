@@ -50,7 +50,7 @@ translations
   "r WHILE b DO c OD" \<rightharpoonup> "CONST AnnWhile r \<lbrace>b\<rbrace> c"
   "r AWAIT b THEN c END" \<rightleftharpoons> "CONST AnnAwait r \<lbrace>b\<rbrace> c"
   "r ATOMIC c END" \<rightleftharpoons> "r AWAIT CONST True THEN c END"
-  "EVENT l WHERE g THEN bd END" \<rightharpoonup> "CONST BasicEvent (l,(\<lbrace>g\<rbrace>,bd))"
+  "EVENT l WHERE g THEN bd END" \<rightharpoonup> "CONST BasicEvent (l,(\<lbrace>g\<rbrace>,W(bd)))"
   "EVENT l THEN bd END" \<rightleftharpoons> "EVENT l WHERE CONST True THEN bd END"
 
 
