@@ -2,6 +2,15 @@ theory SecurityModel
   imports Main
 begin
 
+definition policy_refine :: "('d \<Rightarrow> 'd \<Rightarrow> bool) \<Rightarrow> ('d \<Rightarrow> 'd \<Rightarrow> bool) \<Rightarrow> bool" ("(_ \<preceq>\<^sub>p _)" [70,71] 60)
+  where "policy_refine p1 p2 = (\<forall>d1 d2. (p1 d1 d2) \<longrightarrow> (p2 d1 d2))"
+
+lemma policy_refine_refl : " p \<preceq>\<^sub>p p"
+  by (simp add: policy_refine_def)
+
+lemma policy_refine_trans : "\<lbrakk>p1 \<preceq>\<^sub>p p2; p2 \<preceq>\<^sub>p p3\<rbrakk> \<Longrightarrow> p1 \<preceq>\<^sub>p p3"
+  by (simp add: policy_refine_def)
+
 subsection \<open> Security State Machine \<close>
 
 locale SM_IFS = 
@@ -15,8 +24,6 @@ assumes vpeq_transitive : "\<forall> a b c u. (a \<sim> u \<sim> b) \<and> (b \<
     and vpeq_symmetric : "\<forall> a b u. (a \<sim> u \<sim> b) \<longrightarrow> (b \<sim> u \<sim> a)"
     and vpeq_reflexive : "\<forall> a u. (a \<sim> u \<sim> a)"
 begin
-
-
 
 definition ivpeq :: "'s \<Rightarrow> 'd set \<Rightarrow> 's \<Rightarrow> bool" ("(_ \<approx> _ \<approx> _)" [70,71] 60)
   where "ivpeq s D t \<equiv> \<forall> d \<in> D. (s \<sim> d \<sim> t)"

@@ -115,13 +115,13 @@ coinductive e_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) ec
                   \<rbrakk> \<Longrightarrow> (\<Gamma>\<^sub>c, (e\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (e\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)"
 
 lemma e_sim_init :"(\<Gamma>\<^sub>c,(e\<^sub>c, s\<^sub>c, x\<^sub>c),R\<^sub>c,G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a,(e\<^sub>a, s\<^sub>a, x\<^sub>a),R\<^sub>a,G\<^sub>a) \<Longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<alpha>"
-  by (erule e_sim.cases, simp_all)
+  by (erule e_sim.cases, simp)
 
 lemma e_sim_new_evt_occur_help : "(\<Gamma>\<^sub>c,(e\<^sub>c, s\<^sub>c, x\<^sub>c),R\<^sub>c,G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a,(e\<^sub>a, s\<^sub>a, x\<^sub>a),R\<^sub>a,G\<^sub>a) \<Longrightarrow> 
       \<forall>ec e\<^sub>c' x\<^sub>c' k. (\<Gamma>\<^sub>c \<turnstile>\<^sub>c (e\<^sub>c, s\<^sub>c, x\<^sub>c) -et-((EvtEnt ec)\<sharp>k)\<rightarrow> (e\<^sub>c', s\<^sub>c, x\<^sub>c')) \<longrightarrow> (\<exists>e\<^sub>a' x\<^sub>a' ea.
       (\<Gamma>\<^sub>a \<turnstile>\<^sub>a (e\<^sub>a, s\<^sub>a, x\<^sub>a) -et-((EvtEnt ea)\<sharp>k)\<rightarrow> (e\<^sub>a', s\<^sub>a, x\<^sub>a')) \<and>
       (\<Gamma>\<^sub>c, (e\<^sub>c', s\<^sub>c, x\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (e\<^sub>a', s\<^sub>a, x\<^sub>a'), R\<^sub>a, G\<^sub>a))"
-  by (erule e_sim.cases, simp_all)
+  by (erule e_sim.cases, simp)
 
 lemma e_sim_new_evt_occur: "\<lbrakk>(\<Gamma>\<^sub>c,(e\<^sub>c, s\<^sub>c, x\<^sub>c),R\<^sub>c,G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a,(\<eta> e\<^sub>c, s\<^sub>a, x\<^sub>a),R\<^sub>a,G\<^sub>a);
                              \<Gamma>\<^sub>c \<turnstile>\<^sub>c (e\<^sub>c, s\<^sub>c, x\<^sub>c) -et-EvtEnt ec\<sharp>k\<rightarrow> (e\<^sub>c', s\<^sub>c, x\<^sub>c')\<rbrakk> \<Longrightarrow> 
@@ -258,7 +258,7 @@ theorem BasicEvt_Rule: "\<lbrakk>\<xi> \<subseteq> g\<^sub>c \<rightleftharpoons
 coinductive es_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) esconf, ('s\<^sub>c \<times> 's\<^sub>c) set, ('s\<^sub>c \<times> 's\<^sub>c) set, 
                   'k, ('s\<^sub>c \<times> 's\<^sub>a) set, 
                   ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) event \<Rightarrow> ('l\<^sub>a,'k,'s\<^sub>a,'prog\<^sub>a) event, 
-                  ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) event \<Rightarrow> 'prog\<^sub>c \<Rightarrow> 'prog\<^sub>a option,
+                  ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) event \<Rightarrow> 'prog\<^sub>c \<rightharpoonup> 'prog\<^sub>a,
                   'Env\<^sub>a, ('l\<^sub>a,'k,'s\<^sub>a,'prog\<^sub>a) esconf, ('s\<^sub>a \<times> 's\<^sub>a) set, ('s\<^sub>a \<times> 's\<^sub>a) set] \<Rightarrow> bool" 
   ("'(_,_,_,_')/ \<preceq>\<^sub>e\<^sub>s\<^sub>@\<^sub>_ \<^sub>'(\<^sub>_\<^sub>;\<^sub>_\<^sub>;\<^sub>_\<^sub>') /'(_,_,_,_')" [81,81,81,81,81,81,81,81,81,81,81,81] 100)
   where rgsim : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<alpha>;
@@ -280,7 +280,7 @@ coinductive es_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) e
         \<Longrightarrow> (\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s\<^sub>@\<^sub>k \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<zeta>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)"
 
 lemma es_sim_init :"(\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s\<^sub>@\<^sub>k \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<zeta>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a) \<Longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<alpha>"
-  by (erule es_sim.cases, simp_all)
+  by (erule es_sim.cases, simp)
 
 lemma es_new_evt_occur: "\<lbrakk>(\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s\<^sub>@\<^sub>k \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<zeta>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a);
        \<Gamma>\<^sub>c \<turnstile>\<^sub>c (es\<^sub>c, s\<^sub>c, x\<^sub>c) -es-((EvtEnt e\<^sub>c)\<sharp>k)\<rightarrow> (es\<^sub>c', s\<^sub>c, x\<^sub>c')\<rbrakk> \<Longrightarrow> \<exists> es\<^sub>a' x\<^sub>a'. 
@@ -447,7 +447,7 @@ definition coPre :: "[('s\<^sub>c \<times> 's\<^sub>a) set, 'Env\<^sub>c, ('l\<^
                   'Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) esconf, ('s\<^sub>c \<times> 's\<^sub>c) set, ('s\<^sub>c \<times> 's\<^sub>c) set,
                   'k, ('s\<^sub>c \<times> 's\<^sub>a) set, 
                   ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) event \<Rightarrow> ('l\<^sub>a,'k,'s\<^sub>a,'prog\<^sub>a) event, 
-                  ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) event \<Rightarrow> 'prog\<^sub>c \<Rightarrow> 'prog\<^sub>a option,
+                  ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) event \<Rightarrow> 'prog\<^sub>c \<rightharpoonup> 'prog\<^sub>a,
                   'Env\<^sub>a, ('l\<^sub>a,'k,'s\<^sub>a,'prog\<^sub>a) esconf, ('s\<^sub>a \<times> 's\<^sub>a) set, ('s\<^sub>a \<times> 's\<^sub>a) set] \<Rightarrow> bool"
   where "coPre \<gamma> \<Gamma>\<^sub>c es\<^sub>c R\<^sub>c G\<^sub>c k \<alpha> \<eta> \<zeta> \<Gamma>\<^sub>a es\<^sub>a R\<^sub>a G\<^sub>a \<Gamma>\<^sub>c' esconf\<^sub>c' R\<^sub>c' G\<^sub>c' k' \<alpha>' \<eta>' \<zeta>' \<Gamma>\<^sub>a' esconf\<^sub>a' R\<^sub>a' G\<^sub>a' \<equiv> 
          \<exists>s\<^sub>c s\<^sub>a x\<^sub>c x\<^sub>a e\<^sub>c e\<^sub>a.
@@ -632,7 +632,7 @@ theorem EvtSys_rule: "\<lbrakk>\<forall>e\<^sub>c \<in> es\<^sub>c. is_basicevt 
 coinductive pes_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) pesconf, 
                   ('s\<^sub>c \<times> 's\<^sub>a) set, 
                   ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) event \<Rightarrow> ('l\<^sub>a,'k,'s\<^sub>a,'prog\<^sub>a) event, 
-                  ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) event \<Rightarrow> 'prog\<^sub>c \<Rightarrow> 'prog\<^sub>a option,
+                  ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) event \<Rightarrow> 'prog\<^sub>c \<rightharpoonup> 'prog\<^sub>a,
                   'Env\<^sub>a, ('l\<^sub>a,'k,'s\<^sub>a,'prog\<^sub>a) pesconf] \<Rightarrow> bool" 
   ("'(_,_')/ \<preceq>\<^sub>p\<^sub>e\<^sub>s \<^sub>'(\<^sub>_\<^sub>;\<^sub>_\<^sub>;\<^sub>_\<^sub>') /'(_,_')" [81,81,81,81,81,81,81] 100)
   where rgsim : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<alpha>; 
@@ -651,7 +651,7 @@ coinductive pes_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) 
                   \<rbrakk> \<Longrightarrow> (\<Gamma>\<^sub>c, (pes\<^sub>c, s\<^sub>c, x\<^sub>c)) \<preceq>\<^sub>p\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<zeta>\<^sub>) (\<Gamma>\<^sub>a, (pes\<^sub>a, s\<^sub>a, x\<^sub>a))"
 
 lemma pes_sim_init :"(\<Gamma>\<^sub>c, (pes\<^sub>c, s\<^sub>c, x\<^sub>c)) \<preceq>\<^sub>p\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<zeta>\<^sub>) (\<Gamma>\<^sub>a, (pes\<^sub>a, s\<^sub>a, x\<^sub>a)) \<Longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<alpha>"
-  by (erule pes_sim.cases, simp_all)
+  by (erule pes_sim.cases, simp)
 
 lemma Pes_Sound_New_Evt_Occur: " \<lbrakk>\<forall>k. (\<Gamma>\<^sub>c,(pes\<^sub>c k, s\<^sub>c, x\<^sub>c),R\<^sub>c k,G\<^sub>c k) \<preceq>\<^sub>e\<^sub>s\<^sub>@\<^sub>k \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<zeta>\<^sub>) (\<Gamma>\<^sub>a,(pes\<^sub>a k, s\<^sub>a, x\<^sub>a),R\<^sub>a k,G\<^sub>a k);
       \<forall>i j. i \<noteq> j \<longrightarrow> G\<^sub>c i \<subseteq> R\<^sub>c j \<and> G\<^sub>a i \<subseteq> R\<^sub>a j; \<Gamma>\<^sub>c \<turnstile>\<^sub>c (pes\<^sub>c, s\<^sub>c, x\<^sub>c) -pes-EvtEnt e\<^sub>c\<sharp>k\<rightarrow> (pes\<^sub>c', s\<^sub>c, x\<^sub>c')\<rbrakk>
@@ -843,7 +843,7 @@ fixes \<alpha> :: "('s\<^sub>c \<times> 's\<^sub>a) set"
 assumes
   init_sim : "(\<Gamma>\<^sub>c, C0\<^sub>c) \<preceq>\<^sub>p\<^sub>e\<^sub>s \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<zeta>\<^sub>) (\<Gamma>\<^sub>a, C0\<^sub>a)" and
   dom_sim : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<alpha>; \<eta> e\<^sub>c = e\<^sub>a \<rbrakk> \<Longrightarrow> dome\<^sub>c s\<^sub>c e\<^sub>c = dome\<^sub>a s\<^sub>a e\<^sub>a" and
-  intefere_same : "interference\<^sub>c  = interference\<^sub>a" and
+  intefere_refine : "interference\<^sub>a \<preceq>\<^sub>p interference\<^sub>c" and
   sim_state_ifs : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<alpha>; (t\<^sub>c, t\<^sub>a) \<in> \<alpha>\<rbrakk> \<Longrightarrow> s\<^sub>a \<sim>\<^sub>a d \<sim>\<^sub>a t\<^sub>a = s\<^sub>c \<sim>\<^sub>c d \<sim>\<^sub>c t\<^sub>c"
 begin
 
@@ -979,14 +979,12 @@ interpretation PiCore_Refine ptran\<^sub>c petran\<^sub>c fin_com\<^sub>c \<Gamm
 proof
   show "C0\<^sub>c \<sim> C0\<^sub>a"
     by (simp add: init_sim sim_s_def)
-  show "\<And>a\<^sub>c a\<^sub>a C\<^sub>c C\<^sub>a C\<^sub>c'. sim_a a\<^sub>c = Some a\<^sub>a \<Longrightarrow> InfoFlow\<^sub>c.reachableC0 C\<^sub>c \<Longrightarrow> C\<^sub>c \<sim> C\<^sub>a \<Longrightarrow> 
-        (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c \<Longrightarrow> \<exists>C\<^sub>a'. C\<^sub>c' \<sim> C\<^sub>a' \<and> (C\<^sub>a, C\<^sub>a') \<in> step\<^sub>a a\<^sub>a"
+  show "\<And>a\<^sub>c a\<^sub>a C\<^sub>c C\<^sub>a C\<^sub>c'. sim_a a\<^sub>c = Some a\<^sub>a \<Longrightarrow> C\<^sub>c \<sim> C\<^sub>a \<Longrightarrow> (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c \<Longrightarrow> \<exists>C\<^sub>a'. C\<^sub>c' \<sim> C\<^sub>a' \<and> (C\<^sub>a, C\<^sub>a') \<in> step\<^sub>a a\<^sub>a"
     using action_refine by auto
-  show "\<And>a\<^sub>c C\<^sub>c C\<^sub>a C\<^sub>c'. sim_a a\<^sub>c = None \<Longrightarrow> InfoFlow\<^sub>c.reachableC0 C\<^sub>c \<Longrightarrow> C\<^sub>c \<sim> C\<^sub>a \<Longrightarrow> (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c 
-        \<Longrightarrow> C\<^sub>c' \<sim> C\<^sub>a"
+  show "\<And>a\<^sub>c C\<^sub>c C\<^sub>a C\<^sub>c'. sim_a a\<^sub>c = None \<Longrightarrow> C\<^sub>c \<sim> C\<^sub>a \<Longrightarrow> (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c \<Longrightarrow> C\<^sub>c' \<sim> C\<^sub>a"
     using none_refine by blast
-  show "interference\<^sub>c = interference\<^sub>a"
-    by (simp add: intefere_same)
+  show "interference\<^sub>a \<preceq>\<^sub>p interference\<^sub>c"
+    by (simp add: intefere_refine)
   show "\<And>a\<^sub>c a\<^sub>a. sim_a a\<^sub>c = Some a\<^sub>a \<longrightarrow> domain a\<^sub>c = domain a\<^sub>a"
     using dom_refine by presburger
   show "\<And>C\<^sub>c C\<^sub>a T\<^sub>c T\<^sub>a d. C\<^sub>c \<sim> C\<^sub>a \<Longrightarrow> T\<^sub>c \<sim> T\<^sub>a \<Longrightarrow> gets C\<^sub>a \<sim>\<^sub>ad\<sim>\<^sub>a gets T\<^sub>a = gets C\<^sub>c \<sim>\<^sub>cd\<sim>\<^sub>c gets T\<^sub>c "

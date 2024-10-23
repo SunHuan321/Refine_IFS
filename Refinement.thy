@@ -18,13 +18,13 @@ locale SM_Refine =
   and vpeq\<^sub>a :: "'s\<^sub>a \<Rightarrow> 'd \<Rightarrow> 's\<^sub>a \<Rightarrow> bool" ("(_ \<sim>\<^sub>a_\<sim>\<^sub>a _)" [70,69,70] 60)
   and interference\<^sub>a :: "'d \<Rightarrow> 'd \<Rightarrow> bool" ("(_ \<leadsto>\<^sub>a _)" [70,71] 60) + 
 fixes sim_s :: "'s\<^sub>c \<Rightarrow> 's\<^sub>a \<Rightarrow> bool" ("(_ \<sim> _)" [70,70] 60)
-  and sim_a :: "'a\<^sub>c \<Rightarrow> 'a\<^sub>a option"
+  and sim_a :: "'a\<^sub>c \<rightharpoonup> 'a\<^sub>a"
 assumes
   init_sim : " s0\<^sub>c \<sim> s0\<^sub>a" and
-  action_refine : "\<lbrakk>sim_a a\<^sub>c = Some a\<^sub>a; SM_IFS\<^sub>c.reachable0 s\<^sub>c; s\<^sub>c \<sim> s\<^sub>a; (s\<^sub>c, t\<^sub>c) \<in> step\<^sub>c a\<^sub>c\<rbrakk> 
+  action_refine : "\<lbrakk>sim_a a\<^sub>c = Some a\<^sub>a; s\<^sub>c \<sim> s\<^sub>a; (s\<^sub>c, t\<^sub>c) \<in> step\<^sub>c a\<^sub>c\<rbrakk> 
             \<Longrightarrow> \<exists>t\<^sub>a. t\<^sub>c \<sim> t\<^sub>a \<and> (s\<^sub>a, t\<^sub>a) \<in> step\<^sub>a a\<^sub>a" and
-  none_refine : "\<lbrakk>sim_a a\<^sub>c = None; SM_IFS\<^sub>c.reachable0 s\<^sub>c; s\<^sub>c \<sim> s\<^sub>a; (s\<^sub>c, t\<^sub>c) \<in> step\<^sub>c a\<^sub>c\<rbrakk> \<Longrightarrow> t\<^sub>c \<sim> s\<^sub>a" and
-  intefere_same : "interference\<^sub>c = interference\<^sub>a" and 
+  none_refine : "\<lbrakk>sim_a a\<^sub>c = None;  s\<^sub>c \<sim> s\<^sub>a; (s\<^sub>c, t\<^sub>c) \<in> step\<^sub>c a\<^sub>c\<rbrakk> \<Longrightarrow> t\<^sub>c \<sim> s\<^sub>a" and
+  intefere_refine : "interference\<^sub>a \<preceq>\<^sub>p interference\<^sub>c" and 
   dom_refine : "sim_a a\<^sub>c = Some a\<^sub>a \<longrightarrow> domain\<^sub>c a\<^sub>c = domain\<^sub>a a\<^sub>a" and 
   sim_ifs : " \<lbrakk>s\<^sub>c \<sim> s\<^sub>a; t\<^sub>c \<sim> t\<^sub>a\<rbrakk> \<Longrightarrow> s\<^sub>a \<sim>\<^sub>a d \<sim>\<^sub>a t\<^sub>a = s\<^sub>c \<sim>\<^sub>c d \<sim>\<^sub>c t\<^sub>c" 
 begin 
@@ -112,20 +112,20 @@ proof-
   then have a1: "\<forall>aa d sa sa'. reachable0\<^sub>a sa \<longrightarrow> \<not> domain\<^sub>a aa \<leadsto>\<^sub>a d 
                  \<and> (sa, sa') \<in> step\<^sub>a aa \<longrightarrow> (sa \<sim>\<^sub>a d \<sim>\<^sub>a sa')"
     by (simp add: SM_IFS\<^sub>a.local_respect_def)
-  have "\<forall>ac d sc sc'. reachable0\<^sub>c sc \<longrightarrow> \<not> domain\<^sub>c ac \<leadsto>\<^sub>a d \<and> (sc, sc') \<in> step\<^sub>c ac 
+  have "\<forall>ac d sc sc'. reachable0\<^sub>c sc \<longrightarrow> \<not> domain\<^sub>c ac \<leadsto>\<^sub>c d \<and> (sc, sc') \<in> step\<^sub>c ac 
                       \<longrightarrow> (sc \<sim>\<^sub>c d \<sim>\<^sub>c sc')"
   proof-
     {
       fix ac d sc sc'
       assume b0: "reachable0\<^sub>c sc"
-        and  b1: "\<not> domain\<^sub>c ac \<leadsto>\<^sub>a d"
+        and  b1: "\<not> domain\<^sub>c ac \<leadsto>\<^sub>c d"
         and  b2: "(sc, sc') \<in> step\<^sub>c ac "
       from b0 have  "\<exists>sa. sc \<sim> sa \<and> reachable0\<^sub>a sa" by (simp add: reachR_reach)
       then obtain sa where b3: "sc \<sim> sa \<and> reachable0\<^sub>a sa" by auto
       have "sc \<sim>\<^sub>c d \<sim>\<^sub>c sc'"
       proof(cases "sim_a ac = None")
         assume c0: "sim_a ac = None"
-        with b0 b2 b3 have "sc' \<sim> sa"by (simp add: none_refine)
+        with b0 b2 b3 have "sc' \<sim> sa" by (meson none_refine)
         then show ?thesis
           by (meson SM_IFS\<^sub>a.vpeq_reflexive SM_Refine.sim_ifs SM_Refine_axioms b3)
       next
@@ -135,7 +135,7 @@ proof-
         then have d01: "domain\<^sub>c ac = domain\<^sub>a aa"
           by (simp add: dom_refine)
         with b1 have d2 :"\<not> domain\<^sub>c ac \<leadsto>\<^sub>a d"
-          by (simp add: intefere_same)
+          by (metis intefere_refine policy_refine_def)
         from b0 b2 b3 have "\<exists>sa'. sc' \<sim> sa' \<and> (sa, sa') \<in> step\<^sub>a aa"
           using SM_Refine.action_refine SM_Refine_axioms d1 by fastforce
         then obtain sa' where d3: "sc' \<sim> sa' \<and> (sa, sa') \<in> step\<^sub>a aa" by auto
@@ -148,7 +148,7 @@ proof-
     then show ?thesis by auto
   qed
   then show ?thesis 
-    using SM_IFS\<^sub>c.local_respect_def intefere_same by blast
+    using SM_IFS\<^sub>c.local_respect_def intefere_refine by blast
 qed
 
 
@@ -197,11 +197,11 @@ proof-
           from d0 have d2 : "domain\<^sub>c ac = domain\<^sub>a aa"
             using dom_refine by blast
           then have d3: " domain\<^sub>c ac \<leadsto>\<^sub>c d =  domain\<^sub>a aa \<leadsto>\<^sub>c d"
-            by (simp add: intefere_same)
+            by (simp add: intefere_refine)
           from b2 b4 b5 have d4 : "sc \<sim>\<^sub>c domain\<^sub>c ac \<sim>\<^sub>c tc = sa \<sim>\<^sub>a domain\<^sub>a aa \<sim>\<^sub>a ta"
             using d2 sim_ifs by auto
-          from b3 have d5: " domain\<^sub>a aa \<leadsto>\<^sub>a d \<longrightarrow> sa \<sim>\<^sub>a domain\<^sub>a aa \<sim>\<^sub>a ta"
-            using d2 d4 intefere_same by fastforce
+          with d2 b3 have d5: " domain\<^sub>a aa \<leadsto>\<^sub>a d \<longrightarrow> sa \<sim>\<^sub>a domain\<^sub>a aa \<sim>\<^sub>a ta"
+            by (metis intefere_refine policy_refine_def)
           have "\<exists>sa' ta'. sc' \<sim> sa' \<and> tc' \<sim> ta' \<and> (sa, sa') \<in> step\<^sub>a aa \<and> (ta, ta') \<in> step\<^sub>a aa"
             using action_refine b0 b1 b4 b5 c0 c1 d0 by blast
           then obtain sa' ta' where d6: "sc' \<sim> sa' \<and> tc' \<sim> ta' \<and> (sa, sa') \<in> step\<^sub>a aa \<and> (ta, ta') \<in> step\<^sub>a aa"
@@ -245,7 +245,7 @@ assumes
                   (\<forall>sc sc'. (sc, sc') \<in> step\<^sub>c a\<^sub>c \<longrightarrow> sim_s sc = sim_s sc') \<or> 
                   (\<exists>a\<^sub>a. \<forall>sc sc'. ((sc, sc') \<in> step\<^sub>c a\<^sub>c \<longrightarrow> (sim_s sc, sim_s sc') \<in> step\<^sub>a a\<^sub>a) 
                   \<and> domain\<^sub>c a\<^sub>c = domain\<^sub>a a\<^sub>a)" and
-  intefere_same : "interference\<^sub>c = interference\<^sub>a" and 
+  intefere_refine : "interference\<^sub>c = interference\<^sub>a" and 
   sim_ifs : "  (sim_s s\<^sub>c) \<sim>\<^sub>a d \<sim>\<^sub>a (sim_s t\<^sub>c) = s\<^sub>c \<sim>\<^sub>c d \<sim>\<^sub>c t\<^sub>c" 
 begin 
 
@@ -335,7 +335,7 @@ proof-
     then show ?thesis by auto
   qed
   then show ?thesis 
-    using SM_IFS\<^sub>c.local_respect_def intefere_same by blast 
+    using SM_IFS\<^sub>c.local_respect_def intefere_refine by blast 
 qed
 
 theorem abs_wsc_imp : "SM_IFS\<^sub>a.weak_step_consistent \<Longrightarrow> SM_IFS\<^sub>c.weak_step_consistent"
@@ -379,11 +379,11 @@ proof-
             from b2 have d3: "sim_s sc \<sim>\<^sub>a d \<sim>\<^sub>a sim_s tc"
               using sim_ifs by blast
             from d0 have d5: " domain\<^sub>c ac \<leadsto>\<^sub>c d =  domain\<^sub>a aa \<leadsto>\<^sub>c d"
-            by (simp add: intefere_same)
+            by (simp add: intefere_refine)
           from d0 have d6 : "sc \<sim>\<^sub>c domain\<^sub>c ac \<sim>\<^sub>c tc = sim_s sc \<sim>\<^sub>a domain\<^sub>a aa \<sim>\<^sub>a sim_s tc"
             using sim_ifs by auto
           with b3 d5 have d7: " domain\<^sub>a aa \<leadsto>\<^sub>a d \<longrightarrow> sim_s sc \<sim>\<^sub>a domain\<^sub>a aa \<sim>\<^sub>a sim_s tc"
-            using intefere_same by fastforce
+            using intefere_refine by fastforce
           from c0 c1 have "(sim_s sc, sim_s sc') \<in> step\<^sub>a aa \<and> (sim_s tc, sim_s tc') \<in> step\<^sub>a aa"
             using action_refine d0 by blast
           with a1 d1 d2 d3 d7 have "sim_s sc' \<sim>\<^sub>ad\<sim>\<^sub>a sim_s tc'"  by blast

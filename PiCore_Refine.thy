@@ -31,10 +31,10 @@ fixes sim_s ::  "('l\<^sub>c,'k\<^sub>c,'s\<^sub>c,'prog\<^sub>c) pesconf \<Righ
   and sim_a :: "('l\<^sub>c, 'k\<^sub>c, 's\<^sub>c, 'prog\<^sub>c, 'd) action \<rightharpoonup> ('l\<^sub>a, 'k\<^sub>a, 's\<^sub>a, 'prog\<^sub>a, 'd) action"
 assumes
   init_sim : " C0\<^sub>c \<sim> C0\<^sub>a" and
-  action_refine : "\<lbrakk>sim_a a\<^sub>c = Some a\<^sub>a; InfoFlow\<^sub>c.reachableC0 C\<^sub>c; C\<^sub>c \<sim> C\<^sub>a; (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c\<rbrakk> \<Longrightarrow> 
+  action_refine : "\<lbrakk>sim_a a\<^sub>c = Some a\<^sub>a; C\<^sub>c \<sim> C\<^sub>a; (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c\<rbrakk> \<Longrightarrow> 
                    \<exists>C\<^sub>a'. C\<^sub>c' \<sim> C\<^sub>a' \<and> (C\<^sub>a, C\<^sub>a') \<in> step\<^sub>a a\<^sub>a" and
-  none_refine : "\<lbrakk>sim_a a\<^sub>c = None; InfoFlow\<^sub>c.reachableC0 C\<^sub>c; C\<^sub>c \<sim> C\<^sub>a; (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c\<rbrakk> \<Longrightarrow> C\<^sub>c' \<sim> C\<^sub>a" and
-  intefere_same : "interference\<^sub>c  = interference\<^sub>a" and 
+  none_refine : "\<lbrakk>sim_a a\<^sub>c = None; C\<^sub>c \<sim> C\<^sub>a; (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c\<rbrakk> \<Longrightarrow> C\<^sub>c' \<sim> C\<^sub>a" and
+  intefere_same : "interference\<^sub>a \<preceq>\<^sub>p interference\<^sub>c" and 
   dom_refine : "sim_a a\<^sub>c = Some a\<^sub>a \<longrightarrow> domain a\<^sub>c = domain a\<^sub>a" and 
   sim_ifs : "\<lbrakk>C\<^sub>c \<sim> C\<^sub>a; T\<^sub>c \<sim> T\<^sub>a\<rbrakk> \<Longrightarrow>  (gets C\<^sub>a) \<sim>\<^sub>a d \<sim>\<^sub>a (gets T\<^sub>a) = (gets C\<^sub>c) \<sim>\<^sub>c d \<sim>\<^sub>c (gets T\<^sub>c)"
 begin
@@ -69,12 +69,12 @@ proof
     using InfoFlow\<^sub>a.vpeqC_reflexive by blast
   show "C0\<^sub>c \<sim> C0\<^sub>a"
     by (simp add: init_sim)
-  show " \<And>a\<^sub>c a\<^sub>a s\<^sub>c s\<^sub>a t\<^sub>c. sim_a a\<^sub>c = Some a\<^sub>a \<Longrightarrow> SM_IFS.reachable0 C0\<^sub>c step\<^sub>c s\<^sub>c \<Longrightarrow> s\<^sub>c \<sim> s\<^sub>a \<Longrightarrow> 
-        (s\<^sub>c, t\<^sub>c) \<in> step\<^sub>c a\<^sub>c \<Longrightarrow> \<exists>t\<^sub>a. t\<^sub>c \<sim> t\<^sub>a \<and> (s\<^sub>a, t\<^sub>a) \<in> step\<^sub>a a\<^sub>a"
+  show "\<And>a\<^sub>c a\<^sub>a s\<^sub>c s\<^sub>a t\<^sub>c. sim_a a\<^sub>c = Some a\<^sub>a \<Longrightarrow> s\<^sub>c \<sim> s\<^sub>a \<Longrightarrow> (s\<^sub>c, t\<^sub>c) \<in> step\<^sub>c a\<^sub>c \<Longrightarrow> \<exists>t\<^sub>a. t\<^sub>c \<sim> t\<^sub>a \<and> (s\<^sub>a, t\<^sub>a) \<in> step\<^sub>a a\<^sub>a"
     using InfoFlow\<^sub>c.reachable0_equiv action_refine by blast
-  show "\<And>a\<^sub>c s\<^sub>c s\<^sub>a t\<^sub>c. sim_a a\<^sub>c = None \<Longrightarrow> SM_IFS.reachable0 C0\<^sub>c step\<^sub>c s\<^sub>c \<Longrightarrow> s\<^sub>c \<sim> s\<^sub>a \<Longrightarrow> (s\<^sub>c, t\<^sub>c) \<in> step\<^sub>c a\<^sub>c \<Longrightarrow> t\<^sub>c \<sim> s\<^sub>a"
+  show "\<And>a\<^sub>c s\<^sub>c s\<^sub>a t\<^sub>c. sim_a a\<^sub>c = None \<Longrightarrow> s\<^sub>c \<sim> s\<^sub>a \<Longrightarrow> (s\<^sub>c, t\<^sub>c) \<in> step\<^sub>c a\<^sub>c \<Longrightarrow> t\<^sub>c \<sim> s\<^sub>a"
     using InfoFlow\<^sub>c.reachable0_equiv none_refine by blast
-  show "interference\<^sub>c = interference\<^sub>a"
+  show "interference\<^sub>a \<preceq>\<^sub>p interference\<^sub>c interference\<^sub>a"
+    sledgehammer
     using  intefere_same by force
   show "\<And>a\<^sub>c a\<^sub>a. sim_a a\<^sub>c = Some a\<^sub>a \<longrightarrow> domain a\<^sub>c = domain a\<^sub>a"
     by (simp add:  dom_refine)
