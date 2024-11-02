@@ -3,18 +3,25 @@ theory PiCore_Sim
 begin
 
 
-definition related_transitions:: "('s\<^sub>c \<times> 's\<^sub>c) set \<Rightarrow> ('s\<^sub>a \<times> 's\<^sub>a) set \<Rightarrow> ('s\<^sub>c \<times> 's\<^sub>a) set \<Rightarrow> 
-                                  (('s\<^sub>c \<times> 's\<^sub>c) \<times> ('s\<^sub>a \<times> 's\<^sub>a)) set" ("'(_, _')\<^sub>_" )
-  where "related_transitions R R' \<alpha> = {((\<sigma>,\<sigma>'),(\<Sigma>,\<Sigma>')). (\<sigma>,\<sigma>')\<in> R \<and> (\<Sigma>,\<Sigma>')\<in>R' 
+definition related_transitions_e:: "('s\<^sub>c \<times> 's\<^sub>c) set \<Rightarrow> ('s\<^sub>a \<times> 's\<^sub>a) set \<Rightarrow> ('s\<^sub>c \<times> 's\<^sub>a) set \<Rightarrow> 
+                                  (('s\<^sub>c \<times> 's\<^sub>c) \<times> ('s\<^sub>a \<times> 's\<^sub>a)) set" ("'(_, _')\<^sub>e\<^sub>_" )
+  where "related_transitions_e R R' \<alpha> = {((\<sigma>,\<sigma>'),(\<Sigma>,\<Sigma>')). (\<sigma>,\<sigma>')\<in> R \<and> (\<Sigma>,\<Sigma>')\<in>R' 
                                       \<and>(\<sigma>, \<Sigma>) \<in> \<alpha> \<and> (\<sigma>', \<Sigma>') \<in> \<alpha>}"
 
-definition Stable :: "('s\<^sub>c \<times> 's\<^sub>a) set \<Rightarrow> (('s\<^sub>c \<times> 's\<^sub>c) \<times> ('s\<^sub>a \<times> 's\<^sub>a)) set \<Rightarrow> bool" 
-  where "Stable \<zeta> \<Delta> = (\<forall>\<sigma> \<sigma>' \<Sigma> \<Sigma>'. (\<sigma>, \<Sigma>) \<in> \<zeta> \<longrightarrow> ((\<sigma>,\<sigma>'),(\<Sigma>,\<Sigma>')) \<in> \<Delta> \<longrightarrow> (\<sigma>', \<Sigma>') \<in> \<zeta> )"
+definition Stable_e :: "('s\<^sub>c \<times> 's\<^sub>a) set \<Rightarrow> (('s\<^sub>c \<times> 's\<^sub>c) \<times> ('s\<^sub>a \<times> 's\<^sub>a)) set \<Rightarrow> bool" 
+  where "Stable_e \<zeta> \<Delta> = (\<forall>\<sigma> \<sigma>' \<Sigma> \<Sigma>'. (\<sigma>, \<Sigma>) \<in> \<zeta> \<longrightarrow> ((\<sigma>,\<sigma>'),(\<Sigma>,\<Sigma>')) \<in> \<Delta> \<longrightarrow> (\<sigma>', \<Sigma>') \<in> \<zeta> )"
 
-definition rel_guard_eq :: "'s\<^sub>c set \<Rightarrow> 's\<^sub>a set \<Rightarrow> ('s\<^sub>c \<times> 's\<^sub>a) set" ("_ \<rightleftharpoons>\<^sub>r _" [70, 70] 60)
+lemma stable_e_alpha: "Stable_e \<alpha> (related_transitions_e R R' \<alpha>)"
+  by (simp add: Stable_e_def related_transitions_e_def)
+
+lemma stable_e_conj: "\<lbrakk>Stable_e \<zeta>1 \<Delta>; Stable_e \<zeta>2 \<Delta>\<rbrakk> \<Longrightarrow> Stable_e (\<zeta>1 \<inter> \<zeta>2) \<Delta>"
+  apply (simp add: Stable_e_def)
+  by blast
+
+definition rel_guard_eq :: "'s\<^sub>c set \<Rightarrow> 's\<^sub>a set \<Rightarrow> ('s\<^sub>c \<times> 's\<^sub>a) set" ("_ \<rightleftharpoons>\<^sub>g _" [70, 70] 60)
   where "rel_guard_eq g\<^sub>c g\<^sub>a = {(\<sigma>, \<Sigma>). (\<sigma> \<in> g\<^sub>c) = (\<Sigma> \<in> g\<^sub>a)}"
 
-definition rel_guard_and :: "'s\<^sub>c set \<Rightarrow> 's\<^sub>a set \<Rightarrow> ('s\<^sub>c \<times> 's\<^sub>a) set" ("_\<and>\<^sub>r_" [70, 70] 60) 
+definition rel_guard_and :: "'s\<^sub>c set \<Rightarrow> 's\<^sub>a set \<Rightarrow> ('s\<^sub>c \<times> 's\<^sub>a) set" ("_\<and>\<^sub>g_" [70, 70] 60) 
   where "rel_guard_and g\<^sub>c g\<^sub>a = {(\<sigma>, \<Sigma>). \<sigma> \<in> g\<^sub>c \<and> \<Sigma> \<in> g\<^sub>a}"
 
 locale PiCore_Sim =
@@ -45,7 +52,7 @@ assumes
                       
                             (P\<^sub>c = fin_com\<^sub>c \<longrightarrow> P\<^sub>a = fin_com\<^sub>a \<and> (s\<^sub>c, s\<^sub>a) \<in> \<gamma> \<and> \<gamma> \<subseteq> \<alpha>) \<and> 
 
-                            (\<forall>s\<^sub>c' s\<^sub>a'. ((s\<^sub>c, s\<^sub>c'),(s\<^sub>a, s\<^sub>a')) \<in> ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>\<alpha>) \<longrightarrow> 
+                            (\<forall>s\<^sub>c' s\<^sub>a'. ((s\<^sub>c, s\<^sub>c'),(s\<^sub>a, s\<^sub>a')) \<in> ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>e\<^sub>\<alpha>) \<longrightarrow> 
                             (\<Gamma>\<^sub>c, (P\<^sub>c, s\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (P\<^sub>a, s\<^sub>a'), R\<^sub>a, G\<^sub>a))" 
 (*                          (P\<^sub>c \<noteq> fin_com\<^sub>c \<longrightarrow> P\<^sub>a \<noteq> fin_com\<^sub>a) \<and>   *)
 begin
@@ -110,7 +117,7 @@ coinductive e_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) ec
 
                    e\<^sub>c = AnonyEvent fin_com\<^sub>c \<longrightarrow> e\<^sub>a = AnonyEvent fin_com\<^sub>a \<and> (s\<^sub>c, s\<^sub>a) \<in> \<gamma> \<and> \<gamma> \<subseteq> \<alpha>;
 
-                   \<forall>s\<^sub>c' s\<^sub>a' x\<^sub>c' x\<^sub>a'. ((s\<^sub>c, s\<^sub>c'),(s\<^sub>a, s\<^sub>a')) \<in> ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>\<alpha>) \<longrightarrow>
+                   \<forall>s\<^sub>c' s\<^sub>a' x\<^sub>c' x\<^sub>a'. ((s\<^sub>c, s\<^sub>c'),(s\<^sub>a, s\<^sub>a')) \<in> ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>e\<^sub>\<alpha>) \<longrightarrow>
                    (\<Gamma>\<^sub>c, (e\<^sub>c, s\<^sub>c', x\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (e\<^sub>a, s\<^sub>a', x\<^sub>a'), R\<^sub>a, G\<^sub>a)      
                   \<rbrakk> \<Longrightarrow> (\<Gamma>\<^sub>c, (e\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (e\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)"
 
@@ -162,7 +169,7 @@ lemma e_sim_corresponding_step: "\<lbrakk>\<Gamma>\<^sub>c \<turnstile>\<^sub>c 
   by (erule e_sim.cases, simp)
 
 lemma e_sim_env_interf: "\<lbrakk>(\<Gamma>\<^sub>c,(e\<^sub>c, s\<^sub>c, x\<^sub>c),R\<^sub>c,G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a,(e\<^sub>a, s\<^sub>a, x\<^sub>a),R\<^sub>a,G\<^sub>a); 
-      ((s\<^sub>c, s\<^sub>c'),(s\<^sub>a, s\<^sub>a')) \<in> (R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>\<alpha>\<rbrakk> \<Longrightarrow> 
+      ((s\<^sub>c, s\<^sub>c'),(s\<^sub>a, s\<^sub>a')) \<in> (R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>e\<^sub>\<alpha>\<rbrakk> \<Longrightarrow> 
       (\<Gamma>\<^sub>c, (e\<^sub>c, s\<^sub>c', x\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (e\<^sub>a, s\<^sub>a', x\<^sub>a'), R\<^sub>a, G\<^sub>a)"
   by (erule e_sim.cases, simp)
 
@@ -231,9 +238,10 @@ lemma AnonyEvt_Rule : "\<lbrakk>(\<Gamma>\<^sub>c, (P\<^sub>c, s\<^sub>c), R\<^s
   using prog_sim_validity apply blast
   using prog_sim_validity by blast
 
-theorem BasicEvt_Rule: "\<lbrakk>\<xi> \<subseteq> g\<^sub>c \<rightleftharpoons>\<^sub>r g\<^sub>a; \<xi> \<subseteq> \<alpha>; Stable \<xi> ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>\<alpha>); (s\<^sub>c, s\<^sub>a) \<in> \<xi>;
+(*
+theorem BasicEvt_Rule: "\<lbrakk>\<xi> \<subseteq> g\<^sub>c \<rightleftharpoons>\<^sub>g g\<^sub>a; \<xi> \<subseteq> \<alpha>; Stable \<xi> ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>\<alpha>); (s\<^sub>c, s\<^sub>a) \<in> \<xi>;
      P\<^sub>a \<noteq> fin_com\<^sub>a;
-    \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<inter> (g\<^sub>c \<and>\<^sub>r g\<^sub>a) \<longrightarrow> (\<Gamma>\<^sub>c, (P\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (P\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)\<rbrakk> \<Longrightarrow>
+    \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<inter> (g\<^sub>c \<and>\<^sub>g g\<^sub>a) \<longrightarrow> (\<Gamma>\<^sub>c, (P\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (P\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)\<rbrakk> \<Longrightarrow>
     (\<Gamma>\<^sub>c, (BasicEvent (l\<^sub>c, g\<^sub>c, P\<^sub>c), s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>)
     (\<Gamma>\<^sub>a, (BasicEvent (l\<^sub>a, g\<^sub>a, P\<^sub>a),s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)"
   apply (coinduction arbitrary: P\<^sub>c s\<^sub>c x\<^sub>c P\<^sub>a s\<^sub>a x\<^sub>a, clarsimp)
@@ -254,6 +262,38 @@ theorem BasicEvt_Rule: "\<lbrakk>\<xi> \<subseteq> g\<^sub>c \<rightleftharpoons
   apply (rule conjI)
    apply (meson Event\<^sub>c.noevtent_notran0 act.distinct(1))
   by (meson Stable_def)
+*)
+
+theorem BasicEvt_Rule: "\<lbrakk>\<xi> \<subseteq> g\<^sub>c \<rightleftharpoons>\<^sub>g g\<^sub>a; \<xi> \<subseteq> \<alpha>; Stable_e \<xi> ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>e\<^sub>\<alpha>); (s\<^sub>c, s\<^sub>a) \<in> \<xi>;
+     P\<^sub>a \<noteq> fin_com\<^sub>a;
+    \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<inter> (g\<^sub>c \<and>\<^sub>g g\<^sub>a) \<longrightarrow> (\<Gamma>\<^sub>c, (P\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (P\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)\<rbrakk> \<Longrightarrow>
+    (\<Gamma>\<^sub>c, (BasicEvent (l\<^sub>c, g\<^sub>c, P\<^sub>c), s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>)
+    (\<Gamma>\<^sub>a, (BasicEvent (l\<^sub>a, g\<^sub>a, P\<^sub>a),s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)"
+  apply (coinduction arbitrary: P\<^sub>c s\<^sub>c x\<^sub>c P\<^sub>a s\<^sub>a x\<^sub>a, clarsimp)
+  apply (rule conjI)
+   apply blast
+  apply (rule conjI, clarsimp)
+   apply (erule Event\<^sub>c.etran.cases, simp_all, simp add: body_def  guard_def)
+   apply auto[1]
+   apply (rule_tac x = "AnonyEvent P\<^sub>a" and y = "x\<^sub>a(k := BasicEvent (l\<^sub>a, g\<^sub>a, P\<^sub>a))" in ex2I)
+   apply (drule_tac a = s\<^sub>c and b = s\<^sub>a in all2_impD, simp add: rel_guard_and_def rel_guard_eq_def)
+    apply blast
+   apply (rule conjI)
+    apply (rule_tac x = "BasicEvent (l\<^sub>a, g\<^sub>a, P\<^sub>a)" in exI)
+    apply (smt (verit, best) CollectD Event\<^sub>a.basicevt_tran case_prodD rel_guard_eq_def subsetD)
+   apply (rule AnonyEvt_Rule, simp_all)
+  apply (rule conjI)
+   apply (metis Event\<^sub>c.noevtent_notran0 act.simps(4))
+  apply (rule conjI)
+   apply (meson Event\<^sub>c.noevtent_notran0 act.distinct(1))
+  by (meson Stable_e_def)
+
+theorem BasicEvt_Rule': "\<lbrakk>Stable_e (g\<^sub>c \<rightleftharpoons>\<^sub>g g\<^sub>a) ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>e\<^sub>\<alpha>); (s\<^sub>c, s\<^sub>a) \<in> ((g\<^sub>c \<rightleftharpoons>\<^sub>g g\<^sub>a) \<inter> \<alpha>);
+     P\<^sub>a \<noteq> fin_com\<^sub>a;
+    \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> (\<alpha> \<inter> (g\<^sub>c \<and>\<^sub>g g\<^sub>a)) \<longrightarrow> (\<Gamma>\<^sub>c, (P\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (P\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)\<rbrakk> \<Longrightarrow>
+    (\<Gamma>\<^sub>c, (BasicEvent (l\<^sub>c, g\<^sub>c, P\<^sub>c), s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>)
+    (\<Gamma>\<^sub>a, (BasicEvent (l\<^sub>a, g\<^sub>a, P\<^sub>a),s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)"
+  by (metis BasicEvt_Rule Int_iff Int_lower1 Int_lower2 stable_e_alpha stable_e_conj)
 
 coinductive es_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) esconf, ('s\<^sub>c \<times> 's\<^sub>c) set, ('s\<^sub>c \<times> 's\<^sub>c) set, 
                   'k, ('s\<^sub>c \<times> 's\<^sub>a) set, 
@@ -275,7 +315,7 @@ coinductive es_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) e
                   (\<exists>es\<^sub>a' s\<^sub>a'. (\<Gamma>\<^sub>a \<turnstile>\<^sub>a (es\<^sub>a, s\<^sub>a, x\<^sub>a) -es-((Cmd Pa)\<sharp>k)\<rightarrow> (es\<^sub>a', s\<^sub>a', x\<^sub>a)) \<and> (s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c \<and> (s\<^sub>a, s\<^sub>a') \<in> G\<^sub>a
                   \<and> (\<Gamma>\<^sub>c, (es\<^sub>c', s\<^sub>c', x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s\<^sub>@\<^sub>k \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<zeta>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a', s\<^sub>a', x\<^sub>a), R\<^sub>a, G\<^sub>a));
 
-                 \<forall>s\<^sub>c' s\<^sub>a' x\<^sub>c' x\<^sub>a'. ((s\<^sub>c, s\<^sub>c'),(s\<^sub>a, s\<^sub>a')) \<in> ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>\<alpha>) \<longrightarrow>(x\<^sub>c' k = x\<^sub>c k \<and> x\<^sub>a' k = x\<^sub>a k)
+                 \<forall>s\<^sub>c' s\<^sub>a' x\<^sub>c' x\<^sub>a'. ((s\<^sub>c, s\<^sub>c'),(s\<^sub>a, s\<^sub>a')) \<in> ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>e\<^sub>\<alpha>) \<longrightarrow>(x\<^sub>c' k = x\<^sub>c k \<and> x\<^sub>a' k = x\<^sub>a k)
                    \<longrightarrow> (\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c', x\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s\<^sub>@\<^sub>k \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<zeta>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a', x\<^sub>a'), R\<^sub>a, G\<^sub>a)\<rbrakk> 
         \<Longrightarrow> (\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s\<^sub>@\<^sub>k \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<zeta>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)"
 
@@ -300,7 +340,7 @@ lemma es_corresponding_step: "\<lbrakk>(\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c
   by (erule es_sim.cases, simp)
 
 lemma es_env_interf: "\<lbrakk>(\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s\<^sub>@\<^sub>k \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<zeta>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a);
-      ((s\<^sub>c, s\<^sub>c'),(s\<^sub>a, s\<^sub>a')) \<in> (R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>\<alpha>; x\<^sub>c' k = x\<^sub>c k \<and> x\<^sub>a' k = x\<^sub>a k\<rbrakk> \<Longrightarrow>
+      ((s\<^sub>c, s\<^sub>c'),(s\<^sub>a, s\<^sub>a')) \<in> (R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>e\<^sub>\<alpha>; x\<^sub>c' k = x\<^sub>c k \<and> x\<^sub>a' k = x\<^sub>a k\<rbrakk> \<Longrightarrow>
       (\<Gamma>\<^sub>c, (es\<^sub>c, s\<^sub>c', x\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s\<^sub>@\<^sub>k \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<zeta>\<^sub>) (\<Gamma>\<^sub>a, (es\<^sub>a, s\<^sub>a', x\<^sub>a'), R\<^sub>a, G\<^sub>a)"
   by (erule es_sim.cases, simp)
 
@@ -562,7 +602,7 @@ qed
 theorem EvtSys_rule: "\<lbrakk>\<forall>e\<^sub>c \<in> es\<^sub>c. is_basicevt e\<^sub>c;  \<forall>e\<^sub>c \<in> es\<^sub>c. \<eta> e\<^sub>c \<in> es\<^sub>a;
                       \<forall>s\<^sub>c s\<^sub>a x\<^sub>c x\<^sub>a e\<^sub>c. e\<^sub>c \<in> es\<^sub>c \<longrightarrow>(s\<^sub>c, s\<^sub>a) \<in> \<gamma> \<longrightarrow>
                       e_sim \<Gamma>\<^sub>c (e\<^sub>c, s\<^sub>c, x\<^sub>c) R\<^sub>c G\<^sub>c \<alpha> (\<zeta> e\<^sub>c) \<gamma> \<Gamma>\<^sub>a (\<eta> e\<^sub>c, s\<^sub>a, x\<^sub>a) R\<^sub>a G\<^sub>a;
-                      (s\<^sub>c, s\<^sub>a) \<in> \<gamma>; \<gamma> \<subseteq> \<alpha>; Stable \<gamma> ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>\<alpha>)\<rbrakk> \<Longrightarrow> 
+                      (s\<^sub>c, s\<^sub>a) \<in> \<gamma>; \<gamma> \<subseteq> \<alpha>; Stable_e \<gamma> ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>e\<^sub>\<alpha>)\<rbrakk> \<Longrightarrow> 
        (\<Gamma>\<^sub>c, (EvtSys es\<^sub>c, s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e\<^sub>s\<^sub>@\<^sub>k \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<eta>\<^sub>;\<^sub>\<zeta>\<^sub>) (\<Gamma>\<^sub>a, (EvtSys es\<^sub>a, s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)"
   apply (coinduct taking: "coPre \<gamma> \<Gamma>\<^sub>c es\<^sub>c R\<^sub>c G\<^sub>c k \<alpha> \<eta> \<zeta> \<Gamma>\<^sub>a es\<^sub>a R\<^sub>a G\<^sub>a" rule:es_sim.coinduct)
    apply (simp add: coPre_def, clarsimp)
@@ -627,7 +667,7 @@ theorem EvtSys_rule: "\<lbrakk>\<forall>e\<^sub>c \<in> es\<^sub>c. is_basicevt 
    apply auto
     apply (meson e_sim_env_interf)
    apply (metis e_sim_env_interf)
-  by (metis Stable_def)
+  by (metis Stable_e_def)
 
 coinductive pes_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) pesconf, 
                   ('s\<^sub>c \<times> 's\<^sub>a) set, 
@@ -692,8 +732,8 @@ proof-
           by simp
         from b1 have "(s\<^sub>c, s\<^sub>a) \<in> \<alpha>"
           by (simp add: es_sim_init)
-        then have b2: "((s\<^sub>c, s\<^sub>c),(s\<^sub>a, s\<^sub>a)) \<in> (R\<^sub>c j \<union> Id, R\<^sub>a j \<union> Id)\<^sub>\<alpha>"
-          by (simp add: related_transitions_def)
+        then have b2: "((s\<^sub>c, s\<^sub>c),(s\<^sub>a, s\<^sub>a)) \<in> (R\<^sub>c j \<union> Id, R\<^sub>a j \<union> Id)\<^sub>e\<^sub>\<alpha>"
+          by (simp add: related_transitions_e_def)
         from b0 a4 a6 have "x\<^sub>c j = x\<^sub>c' j \<and> x\<^sub>a j = x\<^sub>a' j" by auto
         with b1 b2 show ?thesis 
           by (metis es_env_interf)     
@@ -734,8 +774,8 @@ proof-
           using Event\<^sub>c.pestran_estran by fastforce
         from b1 have "(s\<^sub>c, s\<^sub>a) \<in> \<alpha>"
           by (simp add: es_sim_init)
-        with a1 a5 b0 have b2: "((s\<^sub>c, s\<^sub>c'),(s\<^sub>a, s\<^sub>a)) \<in> (R\<^sub>c j \<union> Id, R\<^sub>a j \<union> Id)\<^sub>\<alpha>"
-          apply (simp add: related_transitions_def)
+        with a1 a5 b0 have b2: "((s\<^sub>c, s\<^sub>c'),(s\<^sub>a, s\<^sub>a)) \<in> (R\<^sub>c j \<union> Id, R\<^sub>a j \<union> Id)\<^sub>e\<^sub>\<alpha>"
+          apply (simp add: related_transitions_e_def)
           by (metis es_sim_init subsetD)
         with b1 show ?thesis 
           using es_env_interf by fastforce
@@ -784,8 +824,8 @@ proof-
           by simp
         from b1 have "(s\<^sub>c, s\<^sub>a) \<in> \<alpha>"
           by (simp add: es_sim_init)
-        from a1 a5 b0 have b2: "((s\<^sub>c, s\<^sub>c'), (s\<^sub>a, s\<^sub>a')) \<in> (R\<^sub>c j \<union> Id, R\<^sub>a j \<union> Id)\<^sub>\<alpha>"
-          apply (simp add: related_transitions_def)
+        from a1 a5 b0 have b2: "((s\<^sub>c, s\<^sub>c'), (s\<^sub>a, s\<^sub>a')) \<in> (R\<^sub>c j \<union> Id, R\<^sub>a j \<union> Id)\<^sub>e\<^sub>\<alpha>"
+          apply (simp add: related_transitions_e_def)
           by (metis (no_types, lifting) \<open>(s\<^sub>c, s\<^sub>a) \<in> \<alpha>\<close> es_sim_init subsetD)
         with a4 b0 b1 show ?thesis
           by (simp add: es_env_interf)

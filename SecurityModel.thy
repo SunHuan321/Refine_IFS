@@ -373,23 +373,8 @@ definition weak_step_consistent :: " bool"
                                 \<and> (domain a \<leadsto> d \<longrightarrow> s \<sim>domain a\<sim> t) \<longrightarrow> (\<forall>s' t'. (s, s') \<in> step a 
                                 \<and> (t, t') \<in> step a \<longrightarrow> s' \<sim>d\<sim> t')"
 
-definition weak_step_consistent_ev :: "'a \<Rightarrow> bool"
-  where  "weak_step_consistent_ev a \<equiv> \<forall>d s t. reachable0 s \<and> reachable0 t \<longrightarrow> s \<sim>d\<sim> t 
-                                \<and> (domain a \<leadsto> d \<longrightarrow> s \<sim>domain a\<sim> t) \<longrightarrow> (\<forall>s' t'. (s, s') \<in> step a 
-                                \<and> (t, t') \<in> step a \<longrightarrow> s' \<sim>d\<sim> t')"
-
-    
 definition local_respect :: "bool" 
   where "local_respect \<equiv> \<forall>a d s s'. reachable0 s \<longrightarrow> \<not> domain a \<leadsto> d \<and> (s, s') \<in> step a \<longrightarrow> s \<sim>d\<sim> s'"
-
-definition local_respect_ev :: " 'a \<Rightarrow> bool" 
-  where  "local_respect_ev a \<equiv> \<forall> d s s'. reachable0 s \<longrightarrow> \<not> domain a \<leadsto> d \<and> (s, s') \<in> step a \<longrightarrow> s \<sim>d\<sim> s'"
-
-lemma local_respect_all_evt : "local_respect = (\<forall>a. local_respect_ev  a)"
-  by (simp add: local_respect_def local_respect_ev_def)
-
-lemma weak_step_consistent_all_evt : "weak_step_consistent = (\<forall>a. weak_step_consistent_ev a)"
-  by (simp add:weak_step_consistent_def weak_step_consistent_ev_def)
 
 
 lemma sources_unwinding_step:

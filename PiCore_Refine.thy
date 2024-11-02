@@ -34,7 +34,7 @@ assumes
   action_refine : "\<lbrakk>sim_a a\<^sub>c = Some a\<^sub>a; C\<^sub>c \<sim> C\<^sub>a; (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c\<rbrakk> \<Longrightarrow> 
                    \<exists>C\<^sub>a'. C\<^sub>c' \<sim> C\<^sub>a' \<and> (C\<^sub>a, C\<^sub>a') \<in> step\<^sub>a a\<^sub>a" and
   none_refine : "\<lbrakk>sim_a a\<^sub>c = None; C\<^sub>c \<sim> C\<^sub>a; (C\<^sub>c, C\<^sub>c') \<in> step\<^sub>c a\<^sub>c\<rbrakk> \<Longrightarrow> C\<^sub>c' \<sim> C\<^sub>a" and
-  intefere_same : "interference\<^sub>a \<preceq>\<^sub>p interference\<^sub>c" and 
+  intefere_refine : "interference\<^sub>a \<preceq>\<^sub>p interference\<^sub>c" and 
   dom_refine : "sim_a a\<^sub>c = Some a\<^sub>a \<longrightarrow> domain a\<^sub>c = domain a\<^sub>a" and 
   sim_ifs : "\<lbrakk>C\<^sub>c \<sim> C\<^sub>a; T\<^sub>c \<sim> T\<^sub>a\<rbrakk> \<Longrightarrow>  (gets C\<^sub>a) \<sim>\<^sub>a d \<sim>\<^sub>a (gets T\<^sub>a) = (gets C\<^sub>c) \<sim>\<^sub>c d \<sim>\<^sub>c (gets T\<^sub>c)"
 begin
@@ -73,9 +73,8 @@ proof
     using InfoFlow\<^sub>c.reachable0_equiv action_refine by blast
   show "\<And>a\<^sub>c s\<^sub>c s\<^sub>a t\<^sub>c. sim_a a\<^sub>c = None \<Longrightarrow> s\<^sub>c \<sim> s\<^sub>a \<Longrightarrow> (s\<^sub>c, t\<^sub>c) \<in> step\<^sub>c a\<^sub>c \<Longrightarrow> t\<^sub>c \<sim> s\<^sub>a"
     using InfoFlow\<^sub>c.reachable0_equiv none_refine by blast
-  show "interference\<^sub>a \<preceq>\<^sub>p interference\<^sub>c interference\<^sub>a"
-    sledgehammer
-    using  intefere_same by force
+  show "interference\<^sub>a \<preceq>\<^sub>p interference\<^sub>c"
+    using  intefere_refine by force
   show "\<And>a\<^sub>c a\<^sub>a. sim_a a\<^sub>c = Some a\<^sub>a \<longrightarrow> domain a\<^sub>c = domain a\<^sub>a"
     by (simp add:  dom_refine)
   show " \<And>s\<^sub>c s\<^sub>a t\<^sub>c t\<^sub>a d. s\<^sub>c \<sim> s\<^sub>a \<Longrightarrow> t\<^sub>c \<sim> t\<^sub>a \<Longrightarrow> InfoFlow\<^sub>a.vpeqC s\<^sub>a d t\<^sub>a = InfoFlow\<^sub>c.vpeqC s\<^sub>c d t\<^sub>c"
