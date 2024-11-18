@@ -27,6 +27,13 @@ lemma rel_eq_false : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; s\<^sub>c \<n
 definition Stable :: "('s\<^sub>c \<times> 's\<^sub>a) set \<Rightarrow> (('s\<^sub>c \<times> 's\<^sub>c) \<times> ('s\<^sub>a \<times> 's\<^sub>a)) set \<Rightarrow> bool" 
   where "Stable \<zeta> \<Delta> = (\<forall>\<sigma> \<sigma>' \<Sigma> \<Sigma>'. (\<sigma>, \<Sigma>) \<in> \<zeta> \<longrightarrow> ((\<sigma>,\<sigma>'),(\<Sigma>,\<Sigma>')) \<in> \<Delta> \<longrightarrow> (\<sigma>', \<Sigma>') \<in> \<zeta> )"
 
+lemma stable_alpha: "Stable \<alpha> (related_transitions R R' \<alpha>)"
+  by (simp add: Stable_def related_transitions_def)
+
+lemma stable_conj: "\<lbrakk>Stable \<zeta>1 \<Delta>; Stable \<zeta>2 \<Delta>\<rbrakk> \<Longrightarrow> Stable (\<zeta>1 \<inter> \<zeta>2) \<Delta>"
+  apply (simp add: Stable_def)
+  by blast
+
 definition isMidof :: "('s\<^sub>m \<times> 's\<^sub>m) set \<Rightarrow> ('s\<^sub>c \<times> 's\<^sub>m) set \<Rightarrow>('s\<^sub>m \<times> 's\<^sub>a) set \<Rightarrow> 
                        ('s\<^sub>c \<times> 's\<^sub>c) set \<Rightarrow> ('s\<^sub>a \<times> 's\<^sub>a) set \<Rightarrow> bool"
   where "isMidof R\<^sub>m \<alpha> \<beta> R\<^sub>c R\<^sub>a = (\<forall>s\<^sub>c s\<^sub>c' s\<^sub>a s\<^sub>a' s\<^sub>m. ((s\<^sub>c, s\<^sub>c'), (s\<^sub>a, s\<^sub>a')) \<in> related_transitions R\<^sub>c R\<^sub>a (\<beta> \<bullet> \<alpha>)
@@ -201,10 +208,10 @@ theorem Basic_Sound: "\<lbrakk>\<xi> \<subseteq> \<alpha>; \<gamma> \<subseteq> 
   apply (simp add: prog_sim_pre_def)
   by (simp add: Basic_Sim)
 
-lemma Seq_None_Sim: "\<lbrakk> \<forall>C\<^sub>c. \<zeta>\<^sub>1 C\<^sub>c = None \<longrightarrow> \<zeta> (Seq C\<^sub>c C2\<^sub>c) = None; (s\<^sub>c, s\<^sub>a) \<in> \<alpha>;
+lemma Seq_Skip_Sim: "\<lbrakk> \<forall>C\<^sub>c. \<zeta>\<^sub>1 C\<^sub>c = None \<longrightarrow> \<zeta> (Seq C\<^sub>c C2\<^sub>c) = None; (s\<^sub>c, s\<^sub>a) \<in> \<alpha>;
                      ((Some C1\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>1\<^sub>;\<^sub>\<gamma>\<^sub>1\<^sub>) ((None, s\<^sub>a), R\<^sub>a, G\<^sub>a);
-                     \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<gamma>\<^sub>1 \<longrightarrow> ((Some C2\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((Some C\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)\<rbrakk> \<Longrightarrow> 
-                     ((Some (Seq C1\<^sub>c C2\<^sub>c), s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((Some C\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)"
+                     \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<gamma>\<^sub>1 \<longrightarrow> ((Some C2\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((C\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)\<rbrakk> \<Longrightarrow> 
+                     ((Some (Seq C1\<^sub>c C2\<^sub>c), s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((C\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)"
   apply (coinduction arbitrary: C1\<^sub>c s\<^sub>c s\<^sub>a, clarsimp)
   apply (rule conjI, clarsimp)
 (* stutter step *)
@@ -221,13 +228,13 @@ lemma Seq_None_Sim: "\<lbrakk> \<forall>C\<^sub>c. \<zeta>\<^sub>1 C\<^sub>c = N
 (* environmental interference *)
   by (meson prog_env_interf prog_sim_init)
 
-theorem Seq_None_Sound: "\<lbrakk> \<xi> \<subseteq> \<alpha>; \<forall>C\<^sub>c. \<zeta>\<^sub>1 C\<^sub>c = None \<longrightarrow> \<zeta> (Seq C\<^sub>c C2\<^sub>c) = None;
+theorem Seq_Skip_Sound: "\<lbrakk> \<xi> \<subseteq> \<alpha>; \<forall>C\<^sub>c. \<zeta>\<^sub>1 C\<^sub>c = None \<longrightarrow> \<zeta> (Seq C\<^sub>c C2\<^sub>c) = None;
                           (Some C1\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>1\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>1\<^sub>) (None, R\<^sub>a, G\<^sub>a);
-                          (Some C2\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>1\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some C\<^sub>a, R\<^sub>a, G\<^sub>a)\<rbrakk> 
-                      \<Longrightarrow> (Some (Seq C1\<^sub>c C2\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some C\<^sub>a, R\<^sub>a, G\<^sub>a)"
+                          (Some C2\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>1\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (C\<^sub>a, R\<^sub>a, G\<^sub>a)\<rbrakk> 
+                      \<Longrightarrow> (Some (Seq C1\<^sub>c C2\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (C\<^sub>a, R\<^sub>a, G\<^sub>a)"
   apply (simp add: prog_sim_pre_def, clarify)
-  by (metis Seq_None_Sim prog_sim_init)
-
+  by (metis (full_types) Seq_Skip_Sim prog_sim_init)
+  
 lemma Seq_Sim_Corresponding_Finish: "\<lbrakk>((Some C\<^sub>c, s\<^sub>c),R\<^sub>c,G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((Some C\<^sub>a, s\<^sub>a),R\<^sub>a,G\<^sub>a);
       (Some C\<^sub>c, s\<^sub>c) -c\<rightarrow> (None, s\<^sub>c'); \<zeta> C\<^sub>c \<noteq> None\<rbrakk> \<Longrightarrow> 
       \<exists>s\<^sub>a'. (Some (Seq C\<^sub>a C2\<^sub>a), s\<^sub>a) -c\<rightarrow> (Some C2\<^sub>a, s\<^sub>a') \<and> (s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c \<and> (s\<^sub>a, s\<^sub>a') \<in> G\<^sub>a \<and> 
@@ -277,7 +284,7 @@ proof-
     from a5 b0 have b2: "((Some C1\<^sub>c', s\<^sub>c'), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>1\<^sub>;\<^sub>\<gamma>\<^sub>1\<^sub>) ((None, s\<^sub>a'), R\<^sub>a, G\<^sub>a)"
       by simp
     with a3 a4 have "((Some (Seq C1\<^sub>c' C2\<^sub>c), s\<^sub>c'),R\<^sub>c,G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((Some C2\<^sub>a, s\<^sub>a'),R\<^sub>a,G\<^sub>a)"
-      by (metis Seq_None_Sim prog_sim_init)
+      by (simp add: Seq_Skip_Sim prog_sim_init)      
     with a5 b1 show ?thesis by metis
   next
     case (Some C1\<^sub>a')
@@ -345,7 +352,7 @@ lemma If_None_Sim: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<subsete
   by (simp add: Stable_def)
 *)
 
-lemma If_None_Sim: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<subseteq> \<alpha>; \<zeta> (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c) = None;  Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>;
+lemma If_Comm_Branch_Sim: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<subseteq> \<alpha>; \<zeta> (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c) = None;  Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>;
                      \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<and> s\<^sub>c \<in> b\<^sub>c \<longrightarrow> ((Some C1\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((C\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a);
                      \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<and> s\<^sub>c \<notin> b\<^sub>c \<longrightarrow> ((Some C2\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((C\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)
                      \<rbrakk> \<Longrightarrow> ((Some (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c), s\<^sub>c), R\<^sub>c, (G\<^sub>c \<union> Id)) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((C\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)"
@@ -361,12 +368,19 @@ lemma If_None_Sim: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<subsete
   by (simp add: Stable_def)
 
 
-theorem If_None_Sound: "\<lbrakk>\<xi> \<subseteq> \<alpha>; \<zeta> (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c) = None;  Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>;
+theorem If_Comm_Branch_Sound': "\<lbrakk>\<xi> \<subseteq> \<alpha>; \<zeta> (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c) = None;  Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>;
         (Some C1\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>1\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (C\<^sub>a, R\<^sub>a, G\<^sub>a); (Some C2\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>2\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (C\<^sub>a, R\<^sub>a, G\<^sub>a);
         \<xi>\<^sub>1 = \<xi> \<inter> {(s\<^sub>c, s\<^sub>a).  s\<^sub>c \<in> b\<^sub>c}; \<xi>\<^sub>2 = \<xi> \<inter> {(s\<^sub>c, s\<^sub>a).  s\<^sub>c \<notin> b\<^sub>c}\<rbrakk> 
         \<Longrightarrow> (Some (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c), R\<^sub>c, (G\<^sub>c \<union> Id)) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (C\<^sub>a, R\<^sub>a, G\<^sub>a)"
-  by (simp add: prog_sim_pre_def, simp add: If_None_Sim)
+  by (simp add: prog_sim_pre_def, simp add: If_Comm_Branch_Sim)
 
+theorem If_Comm_Branch_Sound: "\<lbrakk>\<xi> \<subseteq> \<alpha>; \<zeta> (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c) = None;  Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>;
+        (Some C1\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>1\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (C\<^sub>a, R\<^sub>a, G\<^sub>a); (Some C2\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>2\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (C\<^sub>a, R\<^sub>a, G\<^sub>a);
+        \<xi>\<^sub>1 = \<xi> \<inter> {(s\<^sub>c, s\<^sub>a).  s\<^sub>c \<in> b\<^sub>c}; \<xi>\<^sub>2 = \<xi> \<inter> {(s\<^sub>c, s\<^sub>a).  s\<^sub>c \<notin> b\<^sub>c}; Id \<subseteq> G\<^sub>c\<rbrakk> 
+        \<Longrightarrow> (Some (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (C\<^sub>a, R\<^sub>a, G\<^sub>a)"
+  apply (drule If_Comm_Branch_Sound', simp_all)
+  by (simp add: sup.order_iff)
+  
 lemma If_Sim: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<subseteq> \<alpha> \<inter> (b\<^sub>c \<rightleftharpoons>\<^sub>r b\<^sub>a); \<zeta> (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c) = Some (Cond b\<^sub>a C1\<^sub>a C2\<^sub>a); Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; 
       \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<inter> (b\<^sub>c \<and>\<^sub>r b\<^sub>a) \<longrightarrow> ((Some C1\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((Some C1\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a);
       \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<inter> (- b\<^sub>c \<and>\<^sub>r - b\<^sub>a) \<longrightarrow> ((Some C2\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((Some C2\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)
@@ -387,14 +401,22 @@ lemma If_Sim: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<subseteq> \<
    apply (smt (verit, best) Conseq_Sim' case_prod_conv mem_Collect_eq subsetD sup.orderI sup_assoc sup_commute sup_idem)
   by (simp add: Stable_def)
 
-theorem If_Sound: "\<lbrakk>\<xi> \<subseteq> \<alpha> \<inter> (b\<^sub>c \<rightleftharpoons>\<^sub>r b\<^sub>a); \<zeta> (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c) = Some (Cond b\<^sub>a C1\<^sub>a C2\<^sub>a);  Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>;
+theorem If_Sound': "\<lbrakk>\<xi> \<subseteq> \<alpha> \<inter> (b\<^sub>c \<rightleftharpoons>\<^sub>r b\<^sub>a); \<zeta> (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c) = Some (Cond b\<^sub>a C1\<^sub>a C2\<^sub>a);  Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>;
         (Some C1\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>1\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some C1\<^sub>a, R\<^sub>a, G\<^sub>a); (Some C2\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>2\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some C2\<^sub>a, R\<^sub>a, G\<^sub>a);
         \<xi>\<^sub>1 = \<xi> \<inter> (b\<^sub>c \<and>\<^sub>r b\<^sub>a); \<xi>\<^sub>2 = \<xi> \<inter> (- b\<^sub>c \<and>\<^sub>r - b\<^sub>a)\<rbrakk> 
         \<Longrightarrow> (Some (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c), R\<^sub>c, (G\<^sub>c \<union> Id)) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some (Cond b\<^sub>a C1\<^sub>a C2\<^sub>a), R\<^sub>a, (G\<^sub>a \<union> Id))"
   by (simp add: prog_sim_pre_def, simp add: If_Sim)
 
+theorem If_Sound: "\<lbrakk>\<xi> \<subseteq> \<alpha> \<inter> (b\<^sub>c \<rightleftharpoons>\<^sub>r b\<^sub>a); \<zeta> (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c) = Some (Cond b\<^sub>a C1\<^sub>a C2\<^sub>a);  Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>;
+        (Some C1\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>1\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some C1\<^sub>a, R\<^sub>a, G\<^sub>a); (Some C2\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>2\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some C2\<^sub>a, R\<^sub>a, G\<^sub>a);
+        \<xi>\<^sub>1 = \<xi> \<inter> (b\<^sub>c \<and>\<^sub>r b\<^sub>a); \<xi>\<^sub>2 = \<xi> \<inter> (- b\<^sub>c \<and>\<^sub>r - b\<^sub>a); Id \<subseteq> G\<^sub>c; Id \<subseteq> G\<^sub>a\<rbrakk> 
+        \<Longrightarrow> (Some (Cond b\<^sub>c C1\<^sub>c C2\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some (Cond b\<^sub>a C1\<^sub>a C2\<^sub>a), R\<^sub>a, G\<^sub>a)"
+  apply (drule If_Sound', simp_all)
+  by (simp add: sup.order_iff)
+
+
 lemma Await_implies: "\<lbrakk> (Some (Await b\<^sub>c C\<^sub>c), s) -c\<rightarrow> (P', s'); \<turnstile> Await b\<^sub>c C\<^sub>c sat [P, R, G, Q]; s \<in> P\<rbrakk> 
-                       \<Longrightarrow> (s, s') \<in> G \<and> s' \<in> Q"
+                       \<Longrightarrow> (s, s') \<in> G \<and> s' \<in> Q \<and> s \<in> b\<^sub>c"
 proof-
   assume a0: "\<turnstile> Await b\<^sub>c C\<^sub>c sat [P, R, G, Q]"
      and a1: "s \<in> P"
@@ -402,7 +424,7 @@ proof-
   from a0 have "\<Turnstile> Await b\<^sub>c C\<^sub>c sat [P, R, G, Q]" by (simp add: rgsound)
   then have a3: "cp (Some (Await b\<^sub>c C\<^sub>c)) s \<inter> assum(P, R) \<subseteq> comm(G, Q)"
     by (simp add: com_validity_def)
-  from a2 have a4: "(Some (Await b\<^sub>c C\<^sub>c), s) -c\<rightarrow> (None, s')"
+  from a2 have a4: "(Some (Await b\<^sub>c C\<^sub>c), s) -c\<rightarrow> (None, s') \<and> s \<in> b\<^sub>c"
     by (rule ctran.cases, simp_all)
   then have a5: "[(Some (Await b\<^sub>c C\<^sub>c), s), (None, s')] \<in> cp (Some (Await b\<^sub>c C\<^sub>c)) s"
     by (simp add: cp_def cptn.CptnComp cptn.CptnOne)
@@ -414,18 +436,18 @@ qed
 
 lemma Await_None_Sim_stutter_step: "\<lbrakk>(Some (Await b\<^sub>c C\<^sub>c), s\<^sub>c) -c\<rightarrow> (P\<^sub>c', s\<^sub>c'); (s\<^sub>c, s\<^sub>a) \<in> \<xi>;
         Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; \<gamma> \<subseteq> \<alpha>;
-        \<forall>s\<^sub>c s\<^sub>a. \<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> b\<^sub>c \<inter> {s\<^sub>c}, Id, G\<^sub>c, {s\<^sub>c'. (s\<^sub>c', s\<^sub>a) \<in> \<gamma>}] \<rbrakk>
+        \<forall>s\<^sub>c s\<^sub>a. \<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c. (s\<^sub>c, s\<^sub>a) \<in> \<xi>}  \<inter> {s\<^sub>c}, Id, G\<^sub>c, {s\<^sub>c'. (s\<^sub>c', s\<^sub>a) \<in> \<gamma>}] \<rbrakk>
         \<Longrightarrow> (s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c \<and> ((P\<^sub>c', s\<^sub>c'),R\<^sub>c,G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((None, s\<^sub>a),R\<^sub>a,G\<^sub>a)"
 proof-
   assume a0: "(Some (Await b\<^sub>c C\<^sub>c), s\<^sub>c) -c\<rightarrow> (P\<^sub>c', s\<^sub>c')"
-     and a1: "\<forall>s\<^sub>c s\<^sub>a. \<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> b\<^sub>c \<inter> {s\<^sub>c}, Id, G\<^sub>c, {s\<^sub>c'. (s\<^sub>c', s\<^sub>a) \<in> \<gamma>}]"
+     and a1: "\<forall>s\<^sub>c s\<^sub>a. \<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c. (s\<^sub>c, s\<^sub>a) \<in> \<xi>}  \<inter> {s\<^sub>c}, Id, G\<^sub>c, {s\<^sub>c'. (s\<^sub>c', s\<^sub>a) \<in> \<gamma>}]"
      and a2: "(s\<^sub>c, s\<^sub>a) \<in> \<xi>"
      and a3: "Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>"
      and a4: "\<gamma> \<subseteq> \<alpha>"
 
   from a0 have b0: "P\<^sub>c' = None \<and> s\<^sub>c \<in> b\<^sub>c"
     by (rule ctran.cases, simp_all)
-  from a1 a2 have "\<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> b\<^sub>c \<inter> {s\<^sub>c}, Id, G\<^sub>c, {s\<^sub>c'. (s\<^sub>c', s\<^sub>a) \<in> \<gamma>}]"
+  from a1 a2 have "\<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> {s\<^sub>c}, Id, G\<^sub>c, {s\<^sub>c'. (s\<^sub>c', s\<^sub>a) \<in> \<gamma>}]"
     by blast
   with a0 a2 b0 have b1: "(s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c \<and> (s\<^sub>c', s\<^sub>a) \<in> \<gamma>"
     using Await_implies a2 by fastforce
@@ -434,10 +456,9 @@ proof-
   with b0 b1 show ?thesis by blast
 qed
     
-    
 lemma Await_None_Sim: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<subseteq> \<alpha>; \<zeta> (Await b\<^sub>c C\<^sub>c) = None; 
       Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; \<gamma> \<subseteq> \<alpha>;
-      \<forall>s\<^sub>c s\<^sub>a. \<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> b\<^sub>c \<inter> {s\<^sub>c}, Id, G\<^sub>c, {s\<^sub>c'. (s\<^sub>c', s\<^sub>a) \<in> \<gamma>}]\<rbrakk> 
+      \<forall>s\<^sub>c s\<^sub>a. \<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> {s\<^sub>c}, Id, G\<^sub>c, {s\<^sub>c'. (s\<^sub>c', s\<^sub>a) \<in> \<gamma>}]\<rbrakk> 
       \<Longrightarrow> ((Some (Await b\<^sub>c C\<^sub>c), s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((None, s\<^sub>a), R\<^sub>a, G\<^sub>a)"
   apply (coinduction arbitrary: s\<^sub>c s\<^sub>a, clarsimp)
   apply (rule conjI)
@@ -452,7 +473,7 @@ lemma Await_None_Sim: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<subs
 
 theorem Await_None_Sound: "\<lbrakk>\<xi> \<subseteq> \<alpha>; \<zeta> (Await b\<^sub>c C\<^sub>c) = None;
     Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; \<gamma> \<subseteq> \<alpha>;
-    \<forall>s\<^sub>c s\<^sub>a. \<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> b\<^sub>c \<inter> {s\<^sub>c}, Id, G\<^sub>c, {s\<^sub>c'. (s\<^sub>c', s\<^sub>a) \<in> \<gamma>}]\<rbrakk> 
+    \<forall>s\<^sub>c s\<^sub>a. \<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> {s\<^sub>c}, Id, G\<^sub>c, {s\<^sub>c'. (s\<^sub>c', s\<^sub>a) \<in> \<gamma>}]\<rbrakk> 
     \<Longrightarrow> (Some (Await b\<^sub>c C\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (None, R\<^sub>a, G\<^sub>a)"
   by (simp add: prog_sim_pre_def Await_None_Sim)
 
@@ -461,16 +482,16 @@ definition not_stuck :: "'s set \<Rightarrow> 's com \<Rightarrow> bool"
 
 lemma Await_Await_corresponding_step: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<subseteq> b\<^sub>c \<rightleftharpoons>\<^sub>r b\<^sub>a; (Some (Await b\<^sub>c C\<^sub>c), s\<^sub>c) -c\<rightarrow> (P\<^sub>c', s\<^sub>c');
       \<forall>s\<^sub>a. s\<^sub>a \<in> b\<^sub>a \<longrightarrow> (\<exists>t\<^sub>a. (Some C\<^sub>a, s\<^sub>a) -c*\<rightarrow> (None, t\<^sub>a)); Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; \<gamma> \<subseteq> \<alpha>;
-      \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> (\<exists>Q\<^sub>c. \<turnstile> Await b\<^sub>c C\<^sub>c sat [b\<^sub>c \<inter> {s\<^sub>c}, Id, G\<^sub>c, Q\<^sub>c] \<and> 
-       (\<exists>Q\<^sub>a. \<turnstile> Await b\<^sub>a C\<^sub>a sat [b\<^sub>a \<inter> {s\<^sub>a}, Id, G\<^sub>a, Q\<^sub>a] \<and> (\<forall>s\<^sub>c s\<^sub>a. s\<^sub>c \<in> Q\<^sub>c \<and> s\<^sub>a \<in> Q\<^sub>a \<longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<gamma>)))\<rbrakk> 
+      \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> (\<exists>Q\<^sub>c. \<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c}, Id, G\<^sub>c, Q\<^sub>c] \<and> 
+       (\<exists>Q\<^sub>a. \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a}, Id, G\<^sub>a, Q\<^sub>a] \<and> (\<forall>s\<^sub>c s\<^sub>a. s\<^sub>c \<in> Q\<^sub>c \<and> s\<^sub>a \<in> Q\<^sub>a \<longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<gamma>)))\<rbrakk> 
       \<Longrightarrow> \<exists>P\<^sub>a' s\<^sub>a'. (Some (Await b\<^sub>a C\<^sub>a), s\<^sub>a) -c\<rightarrow> (P\<^sub>a', s\<^sub>a') \<and> (s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c \<and> (s\<^sub>a, s\<^sub>a') \<in> G\<^sub>a \<and> 
           ((P\<^sub>c', s\<^sub>c'),R\<^sub>c,G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((P\<^sub>a', s\<^sub>a'),R\<^sub>a,G\<^sub>a)"
 proof-
   assume a0: "(s\<^sub>c, s\<^sub>a) \<in> \<xi>"
      and a1: "\<xi> \<subseteq> b\<^sub>c \<rightleftharpoons>\<^sub>r b\<^sub>a"
      and a2: "(Some (Await b\<^sub>c C\<^sub>c), s\<^sub>c) -c\<rightarrow> (P\<^sub>c', s\<^sub>c')"
-     and a3: "\<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> (\<exists>Q\<^sub>c. \<turnstile> Await b\<^sub>c C\<^sub>c sat [b\<^sub>c \<inter> {s\<^sub>c}, Id, G\<^sub>c, Q\<^sub>c] \<and> 
-       (\<exists>Q\<^sub>a. \<turnstile> Await b\<^sub>a C\<^sub>a sat [b\<^sub>a \<inter> {s\<^sub>a}, Id, G\<^sub>a, Q\<^sub>a] \<and> (\<forall>s\<^sub>c s\<^sub>a. s\<^sub>c \<in> Q\<^sub>c \<and> s\<^sub>a \<in> Q\<^sub>a \<longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<gamma>)))"
+     and a3: "\<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> (\<exists>Q\<^sub>c. \<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c}, Id, G\<^sub>c, Q\<^sub>c] \<and> 
+       (\<exists>Q\<^sub>a. \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a}, Id, G\<^sub>a, Q\<^sub>a] \<and> (\<forall>s\<^sub>c s\<^sub>a. s\<^sub>c \<in> Q\<^sub>c \<and> s\<^sub>a \<in> Q\<^sub>a \<longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<gamma>)))"
      and a4: " \<forall>s\<^sub>a. s\<^sub>a \<in> b\<^sub>a \<longrightarrow> (\<exists>t\<^sub>a. (Some C\<^sub>a, s\<^sub>a) -c*\<rightarrow> (None, t\<^sub>a))"
      and a5: "Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>"
      and a6: "\<gamma> \<subseteq> \<alpha>"
@@ -483,11 +504,11 @@ proof-
   then obtain s\<^sub>a' where "(Some C\<^sub>a, s\<^sub>a) -c*\<rightarrow> (None, s\<^sub>a')" by blast
   with b1 have b2: "(Some (Await b\<^sub>a C\<^sub>a), s\<^sub>a) -c\<rightarrow> (None, s\<^sub>a')"
     by (simp add: ctran.Await)
-  from a0 a3 have "\<exists>Q\<^sub>c. \<turnstile> Await b\<^sub>c C\<^sub>c sat [b\<^sub>c \<inter> {s\<^sub>c}, Id, G\<^sub>c, Q\<^sub>c] \<and> 
-                  (\<exists>Q\<^sub>a. \<turnstile> Await b\<^sub>a C\<^sub>a sat [b\<^sub>a \<inter> {s\<^sub>a}, Id, G\<^sub>a, Q\<^sub>a] \<and> 
+  from a0 a3 have "\<exists>Q\<^sub>c. \<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c}, Id, G\<^sub>c, Q\<^sub>c] \<and> 
+                  (\<exists>Q\<^sub>a. \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a}, Id, G\<^sub>a, Q\<^sub>a] \<and> 
                   (\<forall>s\<^sub>c s\<^sub>a. s\<^sub>c \<in> Q\<^sub>c \<and> s\<^sub>a \<in> Q\<^sub>a \<longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<gamma>))"
     by blast
-  then obtain Q\<^sub>c Q\<^sub>a where b3: "\<turnstile> Await b\<^sub>c C\<^sub>c sat [b\<^sub>c \<inter> {s\<^sub>c}, Id, G\<^sub>c, Q\<^sub>c] \<and> \<turnstile> Await b\<^sub>a C\<^sub>a sat [b\<^sub>a \<inter> {s\<^sub>a}, Id, G\<^sub>a, Q\<^sub>a]
+  then obtain Q\<^sub>c Q\<^sub>a where b3: "\<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c}, Id, G\<^sub>c, Q\<^sub>c] \<and> \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a}, Id, G\<^sub>a, Q\<^sub>a]
                           \<and> (\<forall>s\<^sub>c s\<^sub>a. s\<^sub>c \<in> Q\<^sub>c \<and> s\<^sub>a \<in> Q\<^sub>a \<longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<gamma>)"
     by blast
   with a2 b0 b1 b2 have b4: "(s\<^sub>c, s\<^sub>c') \<in> G\<^sub>c \<and> (s\<^sub>a, s\<^sub>a') \<in> G\<^sub>a \<and> s\<^sub>c' \<in> Q\<^sub>c \<and> s\<^sub>a' \<in> Q\<^sub>a"
@@ -501,7 +522,7 @@ qed
 lemma Await_Await_Sim: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<subseteq> \<alpha> \<inter> ( b\<^sub>c \<rightleftharpoons>\<^sub>r b\<^sub>a); \<zeta> (Await b\<^sub>c C\<^sub>c) = Some (Await b\<^sub>a C\<^sub>a);
       Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; \<gamma> \<subseteq> \<alpha>; Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>;
       \<forall>s\<^sub>a. s\<^sub>a \<in> b\<^sub>a \<longrightarrow> (\<exists>t\<^sub>a. (Some C\<^sub>a, s\<^sub>a) -c*\<rightarrow> (None, t\<^sub>a));
-      \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> (\<exists>Q\<^sub>c Q\<^sub>a. \<turnstile> Await b\<^sub>c C\<^sub>c sat [b\<^sub>c \<inter> {s\<^sub>c}, Id, G\<^sub>c, Q\<^sub>c] \<and> \<turnstile> Await b\<^sub>a C\<^sub>a sat [b\<^sub>a \<inter> {s\<^sub>a}, Id, G\<^sub>a, Q\<^sub>a]
+      \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> (\<exists>Q\<^sub>c Q\<^sub>a. \<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c}, Id, G\<^sub>c, Q\<^sub>c] \<and> \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a}, Id, G\<^sub>a, Q\<^sub>a]
       \<and> (\<forall>s\<^sub>c s\<^sub>a. s\<^sub>c \<in> Q\<^sub>c \<and> s\<^sub>a \<in> Q\<^sub>a \<longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<gamma>)) \<rbrakk> 
       \<Longrightarrow> ((Some (Await b\<^sub>c C\<^sub>c), s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((Some (Await b\<^sub>a C\<^sub>a), s\<^sub>a), R\<^sub>a, G\<^sub>a)"
   apply (coinduction arbitrary: s\<^sub>c s\<^sub>a, clarsimp)
@@ -515,20 +536,20 @@ lemma Await_Await_Sim: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<sub
 
 theorem Await_Await_Sound: "\<lbrakk>\<xi> \<subseteq> \<alpha> \<inter> ( b\<^sub>c \<rightleftharpoons>\<^sub>r b\<^sub>a); \<zeta> (Await b\<^sub>c C\<^sub>c) = Some (Await b\<^sub>a C\<^sub>a); 
    Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; \<gamma> \<subseteq> \<alpha>; Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>;  not_stuck b\<^sub>a C\<^sub>a;
-   \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> (\<exists>Q\<^sub>c Q\<^sub>a. \<turnstile> Await b\<^sub>c C\<^sub>c sat [b\<^sub>c \<inter> {s\<^sub>c}, Id, G\<^sub>c, Q\<^sub>c] \<and> \<turnstile> Await b\<^sub>a C\<^sub>a sat [b\<^sub>a \<inter> {s\<^sub>a}, Id, G\<^sub>a, Q\<^sub>a]
+   \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> (\<exists>Q\<^sub>c Q\<^sub>a. \<turnstile> Await b\<^sub>c C\<^sub>c sat [{s\<^sub>c}, Id, G\<^sub>c, Q\<^sub>c] \<and> \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a}, Id, G\<^sub>a, Q\<^sub>a]
   \<and> (\<forall>s\<^sub>c s\<^sub>a. s\<^sub>c \<in> Q\<^sub>c \<and> s\<^sub>a \<in> Q\<^sub>a \<longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<gamma>)) \<rbrakk> \<Longrightarrow> (Some (Await b\<^sub>c C\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some (Await b\<^sub>a C\<^sub>a), R\<^sub>a, G\<^sub>a)"
   by (simp add: prog_sim_pre_def Await_Await_Sim not_stuck_def)
 
 lemma Basic_Await_corresponding_step: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> s\<^sub>a \<in> b\<^sub>a \<and> (s\<^sub>c, f s\<^sub>c) \<in> G\<^sub>c; 
       \<forall>s\<^sub>a. s\<^sub>a \<in> b\<^sub>a \<longrightarrow> (\<exists>t\<^sub>a. (Some C\<^sub>a, s\<^sub>a) -c*\<rightarrow> (None, t\<^sub>a));
-      \<forall>s\<^sub>c. \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> b\<^sub>a \<inter> {s\<^sub>a}, Id, G\<^sub>a, {s\<^sub>a'. (f s\<^sub>c, s\<^sub>a') \<in> \<gamma>}];
+      \<forall>s\<^sub>c. \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> {s\<^sub>a}, Id, G\<^sub>a, {s\<^sub>a'. (f s\<^sub>c, s\<^sub>a') \<in> \<gamma>}];
       Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; \<gamma> \<subseteq> \<alpha>\<rbrakk> 
      \<Longrightarrow> \<exists>P\<^sub>a' s\<^sub>a'. (Some (Await b\<^sub>a C\<^sub>a), s\<^sub>a) -c\<rightarrow> (P\<^sub>a', s\<^sub>a') \<and> (s\<^sub>a, s\<^sub>a') \<in> G\<^sub>a \<and> ((None, f s\<^sub>c),R\<^sub>c,G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((P\<^sub>a', s\<^sub>a'),R\<^sub>a,G\<^sub>a)"
 proof-
   assume a0: "(s\<^sub>c, s\<^sub>a) \<in> \<xi>"
      and a1: "\<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> s\<^sub>a \<in> b\<^sub>a \<and> (s\<^sub>c, f s\<^sub>c) \<in> G\<^sub>c"
      and a2: "\<forall>s\<^sub>a. s\<^sub>a \<in> b\<^sub>a \<longrightarrow> (\<exists>t\<^sub>a. (Some C\<^sub>a, s\<^sub>a) -c*\<rightarrow> (None, t\<^sub>a))"
-     and a3: "\<forall>s\<^sub>c. \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> b\<^sub>a \<inter> {s\<^sub>a}, Id, G\<^sub>a, {s\<^sub>a'. (f s\<^sub>c, s\<^sub>a') \<in> \<gamma>}]"
+     and a3: "\<forall>s\<^sub>c. \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> {s\<^sub>a}, Id, G\<^sub>a, {s\<^sub>a'. (f s\<^sub>c, s\<^sub>a') \<in> \<gamma>}]"
      and a4: "Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>"
      and a5: "\<gamma> \<subseteq> \<alpha>"
 
@@ -538,11 +559,11 @@ proof-
   with b0 have b2: "(Some (Await b\<^sub>a C\<^sub>a), s\<^sub>a) -c\<rightarrow> (None, s\<^sub>a')"
     by (simp add: ctran.Await)
 
-  from a3 have b30: "\<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> b\<^sub>a \<inter> {s\<^sub>a}, Id, G\<^sub>a, {s\<^sub>a'. (f s\<^sub>c, s\<^sub>a') \<in> \<gamma>}]"
+  from a3 have b30: "\<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> {s\<^sub>a}, Id, G\<^sub>a, {s\<^sub>a'. (f s\<^sub>c, s\<^sub>a') \<in> \<gamma>}]"
     by auto
   from a0 b1 have b31: "s\<^sub>a \<in> {s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> b\<^sub>a \<inter> {s\<^sub>a}" by blast
   with b30 b2 have b3: "(s\<^sub>a, s\<^sub>a') \<in> G\<^sub>a \<and> (f s\<^sub>c, s\<^sub>a') \<in> \<gamma>"
-    by (metis Await_implies CollectD)
+    by (metis Await_implies CollectD Int_iff)
   with a4 a5 have b4: "((None, f s\<^sub>c),R\<^sub>c,G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((None, s\<^sub>a'),R\<^sub>a,G\<^sub>a)"
     by (simp add: None_Sim)
   with b2 b3 show ?thesis by blast
@@ -552,7 +573,7 @@ lemma Basic_Await_Sim: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<sub
       Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; \<gamma> \<subseteq> \<alpha>;
       \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> s\<^sub>a \<in> b\<^sub>a \<and> (s\<^sub>c, f\<^sub>c s\<^sub>c) \<in> G\<^sub>c;
       \<forall>s\<^sub>a. s\<^sub>a \<in> b\<^sub>a \<longrightarrow> (\<exists>t\<^sub>a. (Some C\<^sub>a, s\<^sub>a) -c*\<rightarrow> (None, t\<^sub>a)); 
-      \<forall>s\<^sub>c s\<^sub>a.  \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> b\<^sub>a \<inter> {s\<^sub>a}, Id, G\<^sub>a, {s\<^sub>a'. (f\<^sub>c s\<^sub>c, s\<^sub>a') \<in> \<gamma>}]\<rbrakk> 
+      \<forall>s\<^sub>c s\<^sub>a.  \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> {s\<^sub>a}, Id, G\<^sub>a, {s\<^sub>a'. (f\<^sub>c s\<^sub>c, s\<^sub>a') \<in> \<gamma>}]\<rbrakk> 
       \<Longrightarrow> ((Some (Basic f\<^sub>c), s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((Some (Await b\<^sub>a C\<^sub>a), s\<^sub>a), R\<^sub>a, G\<^sub>a)"
   apply (coinduction arbitrary: s\<^sub>c s\<^sub>a, clarsimp)
   apply (rule conjI)
@@ -566,7 +587,7 @@ lemma Basic_Await_Sim: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<sub
 theorem Basic_Await_Sound: "\<lbrakk>\<xi> \<subseteq> \<alpha>;  Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; \<zeta> (Basic f\<^sub>c) = Some (Await b\<^sub>a C\<^sub>a);
       Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; \<gamma> \<subseteq> \<alpha>; not_stuck b\<^sub>a C\<^sub>a;
       \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> s\<^sub>a \<in> b\<^sub>a \<and> (s\<^sub>c, f\<^sub>c s\<^sub>c) \<in> G\<^sub>c;
-      \<forall>s\<^sub>c s\<^sub>a.  \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi>} \<inter> b\<^sub>a \<inter> {s\<^sub>a}, Id, G\<^sub>a, {s\<^sub>a'. (f\<^sub>c s\<^sub>c, s\<^sub>a') \<in> \<gamma>}]\<rbrakk> \<Longrightarrow> (
+      \<forall>s\<^sub>c s\<^sub>a.  \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi>}  \<inter> {s\<^sub>a}, Id, G\<^sub>a, {s\<^sub>a'. (f\<^sub>c s\<^sub>c, s\<^sub>a') \<in> \<gamma>}]\<rbrakk> \<Longrightarrow> (
       Some (Basic f\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some (Await b\<^sub>a C\<^sub>a), R\<^sub>a, G\<^sub>a)"
   by (simp add: not_stuck_def prog_sim_pre_def Basic_Await_Sim)
 
@@ -740,13 +761,22 @@ lemma While_While_Sim: "\<lbrakk>\<zeta> (While b\<^sub>c C\<^sub>c) = Some (Whi
    apply (meson Stable_def)
   by (metis Int_iff Stable_def)
 
-theorem While_While_Sound: "\<lbrakk>\<zeta> (While b\<^sub>c C\<^sub>c) = Some (While b\<^sub>a C\<^sub>a); \<gamma> \<subseteq> (b\<^sub>c \<rightleftharpoons>\<^sub>r b\<^sub>a); \<gamma> \<subseteq> \<alpha>; 
+theorem While_While_Sound': "\<lbrakk>\<zeta> (While b\<^sub>c C\<^sub>c) = Some (While b\<^sub>a C\<^sub>a); \<gamma> \<subseteq> (b\<^sub>c \<rightleftharpoons>\<^sub>r b\<^sub>a); \<gamma> \<subseteq> \<alpha>; 
         Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; Stable \<gamma>\<^sub>2 (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>;
         \<forall>P\<^sub>c. \<zeta> (Seq P\<^sub>c (While b\<^sub>c C\<^sub>c)) = None \<longrightarrow> \<zeta>\<^sub>1 P\<^sub>c = None; \<forall>P\<^sub>c. \<zeta> (Seq P\<^sub>c (While b\<^sub>c C\<^sub>c)) \<noteq> None 
         \<longrightarrow> (\<exists>P\<^sub>a. \<zeta>\<^sub>1 P\<^sub>c = Some P\<^sub>a \<and> \<zeta> (Seq P\<^sub>c (While b\<^sub>c C\<^sub>c)) = Some (Seq P\<^sub>a (While b\<^sub>a C\<^sub>a)));    
         (Some C\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>1\<^sub>;\<^sub>\<gamma>\<^sub>1\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some C\<^sub>a, R\<^sub>a, G\<^sub>a); \<gamma>\<^sub>1 = \<gamma> \<inter> (b\<^sub>c \<and>\<^sub>r b\<^sub>a); \<gamma>\<^sub>2 = \<gamma> \<inter> (-b\<^sub>c \<and>\<^sub>r -b\<^sub>a)\<rbrakk> \<Longrightarrow> 
         (Some (While b\<^sub>c C\<^sub>c), R\<^sub>c, G\<^sub>c\<^sup>=) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>2\<^sub>) (Some (While b\<^sub>a C\<^sub>a), R\<^sub>a, G\<^sub>a\<^sup>=)"
   by (simp add: prog_sim_pre_def While_While_Sim)
+
+theorem While_While_Sound: "\<lbrakk>\<zeta> (While b\<^sub>c C\<^sub>c) = Some (While b\<^sub>a C\<^sub>a); \<gamma> \<subseteq> (b\<^sub>c \<rightleftharpoons>\<^sub>r b\<^sub>a); \<gamma> \<subseteq> \<alpha>; 
+        Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; Stable \<gamma>\<^sub>2 (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; Id \<subseteq> G\<^sub>c; Id \<subseteq> G\<^sub>a;
+        \<forall>P\<^sub>c. \<zeta> (Seq P\<^sub>c (While b\<^sub>c C\<^sub>c)) = None \<longrightarrow> \<zeta>\<^sub>1 P\<^sub>c = None; \<forall>P\<^sub>c. \<zeta> (Seq P\<^sub>c (While b\<^sub>c C\<^sub>c)) \<noteq> None 
+        \<longrightarrow> (\<exists>P\<^sub>a. \<zeta>\<^sub>1 P\<^sub>c = Some P\<^sub>a \<and> \<zeta> (Seq P\<^sub>c (While b\<^sub>c C\<^sub>c)) = Some (Seq P\<^sub>a (While b\<^sub>a C\<^sub>a)));    
+        (Some C\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>1\<^sub>;\<^sub>\<gamma>\<^sub>1\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some C\<^sub>a, R\<^sub>a, G\<^sub>a); \<gamma>\<^sub>1 = \<gamma> \<inter> (b\<^sub>c \<and>\<^sub>r b\<^sub>a); \<gamma>\<^sub>2 = \<gamma> \<inter> (-b\<^sub>c \<and>\<^sub>r -b\<^sub>a)\<rbrakk> \<Longrightarrow> 
+        (Some (While b\<^sub>c C\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>2\<^sub>) (Some (While b\<^sub>a C\<^sub>a), R\<^sub>a, G\<^sub>a)"
+  apply (drule While_While_Sound', simp_all)
+  by (simp add: sup.order_iff)
 
 lemma Trans_Sim_stutter_step: "\<lbrakk>((Some P\<^sub>c, s\<^sub>c),R\<^sub>c,G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>1\<^sub>;\<^sub>\<zeta>\<^sub>1\<^sub>;\<^sub>\<gamma>\<^sub>1\<^sub>) ((C\<^sub>m, s\<^sub>m),R\<^sub>m,G\<^sub>m);
       ((C\<^sub>m, s\<^sub>m),R\<^sub>m,G\<^sub>m) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>2\<^sub>;\<^sub>\<zeta>\<^sub>2\<^sub>;\<^sub>\<gamma>\<^sub>2\<^sub>) ((C\<^sub>a, s\<^sub>a),R\<^sub>a,G\<^sub>a); (Some P\<^sub>c, s\<^sub>c) -c\<rightarrow> (P\<^sub>c', s\<^sub>c');
@@ -870,8 +900,51 @@ theorem Trans_Sound: "\<lbrakk>(C\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub
    apply (meson Trans_Sim)
   by (simp add: rel_comp_def)
 
+theorem not_stuck_Conseq: "\<lbrakk>not_stuck S1 C; S2 \<subseteq> S1\<rbrakk> \<Longrightarrow> not_stuck S2 C"
+  by (simp add: not_stuck_def subsetD)
 
+theorem not_stuck_Basic: "not_stuck UNIV (Basic f)"
+  apply (simp add: not_stuck_def, clarify)
+  by (meson ctran.Basic r_into_rtrancl)
 
+definition seq_trans :: "'a com \<Rightarrow> 'a conf \<Rightarrow> 'a conf \<Rightarrow> bool"
+  where "seq_trans C2 conf1 conf2 = (if ((fst conf2) = None) \<or> 
+  (((fst conf1) \<noteq> None) \<and> ((fst conf2) \<noteq> None) \<and> (Some (Seq (the (fst conf1)) C2), snd conf1) -c*\<rightarrow> 
+  (Some (Seq (the (fst conf2)) C2), snd conf2)) then True else False)"
+
+lemma seq_trans_help: "\<lbrakk>(Some C1, s) -c*\<rightarrow> (Some C1', s')\<rbrakk> \<Longrightarrow> (Some (Seq C1 C2), s) -c*\<rightarrow> (Some (Seq C1' C2), s')"
+  apply (drule rtrancl.induct[of "(Some C1, s)" "(Some C1', s')" ctran "seq_trans C2"])
+    apply (simp_all add: seq_trans_def)
+    apply fastforce
+   apply (case_tac b, case_tac aa)
+    apply (metis non_no_tran prod.collapse)
+   apply (case_tac a, case_tac ac, simp)
+   apply (case_tac c, case_tac ae, simp, clarsimp)
+   apply (meson ctran.Seq2 rtrancl.simps)
+  by presburger
+
+lemma seq_trans: "\<lbrakk>(Some C1, s) -c*\<rightarrow> (None, t)\<rbrakk> \<Longrightarrow> (Some (Seq C1 C2), s) -c*\<rightarrow> (Some C2, t)"
+proof-
+  assume a0: "(Some C1, s) -c*\<rightarrow> (None, t)"
+  then have "\<exists>C1' s'. (Some C1, s) -c*\<rightarrow> (Some C1', s') \<and> (Some C1', s') -c\<rightarrow> (None, t)"
+    by (metis non_no_tran old.prod.inject option.exhaust_sel option.simps(3) rtranclE surj_pair)
+  then obtain C1' s' where a1: "(Some C1, s) -c*\<rightarrow> (Some C1', s') \<and> (Some C1', s') -c\<rightarrow> (None, t)"
+    by auto
+  then have a2: "(Some (Seq C1 C2), s) -c*\<rightarrow> (Some (Seq C1' C2), s')"
+    by (simp add: seq_trans_help)
+  from a1 have "(Some (Seq C1' C2), s') -c\<rightarrow> (Some C2, t)"
+    by (simp add: ctran.Seq1)
+  with a2 show ?thesis
+    by auto
+qed
+
+theorem not_stuck_Seq: "\<lbrakk>not_stuck S C1; not_stuck UNIV C2 \<rbrakk> \<Longrightarrow> not_stuck S (Seq C1 C2)"
+  apply (simp add: not_stuck_def)
+  by (meson rtrancl_trans seq_trans)
+
+theorem not_stuck_If: "\<lbrakk>not_stuck S C1; not_stuck S C2\<rbrakk> \<Longrightarrow> not_stuck S (Cond b C1 C2)"
+  apply (simp add: not_stuck_def, clarify)
+  by (metis converse_rtrancl_into_rtrancl ctran.CondF ctran.CondT)
 
 
 

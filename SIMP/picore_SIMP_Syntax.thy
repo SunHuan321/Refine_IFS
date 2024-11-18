@@ -1,7 +1,7 @@
 section \<open>Concrete Syntax of PiCore-SIMP\<close>
 
 theory picore_SIMP_Syntax 
-imports picore_SIMP (*PiCore_RG_IFS *)
+imports "RG_Tran" "../PiCore/PiCore_Semantics" (*PiCore_RG_IFS *)
 
 (*keywords "procedures" :: thy_decl*)
 
@@ -29,20 +29,6 @@ abbreviation Wrap_prog :: "'s com \<Rightarrow> 's com option" ("W(_)" 0)
 where "Wrap_prog p \<equiv> Some p"
 
 notation Seq  ("(_;;/ _)" [60,61] 60)
-
-(* denotate the syntex in RG-hoare here *)
-syntax
-rghoare_p :: "'Env \<Rightarrow> 'prog \<Rightarrow> ['s set, ('s \<times> 's) set, ('s \<times> 's) set, 's set] \<Rightarrow> bool"
-    ("_ \<turnstile> _ sat\<^sub>p [_, _, _, _]" [60,60,0,0,0,0] 45)
-rghoare_e :: "'Env \<Rightarrow> ('l,'k,'s,'prog) event \<Rightarrow> ['s set, ('s \<times> 's) set, ('s \<times> 's) set, 's set] \<Rightarrow> bool"
-    ("_ \<turnstile> _ sat\<^sub>e [_, _, _, _]" [60,60,0,0,0,0] 45)
-Evt_sat_RG:: "'Env \<Rightarrow> ('l,'k,'s,'prog) event \<Rightarrow> 's rgformula \<Rightarrow> bool" ("(_ _\<turnstile>_)" [60,60,60] 61)
-rghoare_es :: "'Env \<Rightarrow> ('l,'k,'s,'prog) rgformula_ess \<Rightarrow> ['s set, ('s \<times> 's) set, ('s \<times> 's) set, 's set] \<Rightarrow> bool"
-    ("_ \<turnstile> _ sat\<^sub>s [_, _, _, _]" [60,60,0,0,0,0] 45)
-rghoare_pes :: "'Env \<Rightarrow> ('l,'k,'s,'prog) rgformula_par \<Rightarrow> ['s set, ('s \<times> 's) set, ('s \<times> 's) set, 's set] \<Rightarrow> bool"
-          ("_ \<turnstile> _ SAT [_, _, _, _]" [60,60,0,0,0,0] 45)
-Evt_sat_RG:: "'Env \<Rightarrow> ('l,'k,'s,'prog) event \<Rightarrow> 's rgformula \<Rightarrow> bool" ("(_ _\<turnstile>_)" [60,60,60] 61)
-Esys_sat_RG :: "'Env \<Rightarrow> ('l,'k,'s,'prog) rgformula_ess \<Rightarrow> 's rgformula \<Rightarrow> bool" ("(_ _\<turnstile>\<^sub>e\<^sub>s_)" [60,60,60] 61)
 
 syntax
   "_Assign"    :: "idt \<Rightarrow> 'b \<Rightarrow> 's com"                      ("(\<acute>_ :=/ _)" [70, 65] 61)

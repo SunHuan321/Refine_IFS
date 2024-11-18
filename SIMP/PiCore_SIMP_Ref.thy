@@ -92,7 +92,7 @@ lemma prog_simI_sound: "\<lbrakk>(\<Gamma>\<^sub>c, (P\<^sub>c, s\<^sub>c), R\<^
   apply (erule prog_simI.cases, simp)
   by (simp add: related_transitions_def related_transitions_e_def)
 
-interpretation PiCore_Sim ptranI\<^sub>c petranI\<^sub>c None ptranI\<^sub>a petranI\<^sub>a None prog_simI
+interpretation Simulation: PiCore_Sim ptranI\<^sub>c petranI\<^sub>c None ptranI\<^sub>a petranI\<^sub>a None prog_simI
 proof
   show "\<And>\<Gamma> a b c d. (a, b) -e\<rightarrow> (c, d) \<Longrightarrow> a = c"
     by (simp add: etran.simps)
@@ -117,3 +117,15 @@ proof
        (P\<^sub>c = None \<longrightarrow> P\<^sub>a = None \<and> (s\<^sub>c, s\<^sub>a) \<in> \<gamma> \<and> \<gamma> \<subseteq> \<alpha>) \<and> 
        (\<forall>s\<^sub>c' s\<^sub>a'. ((s\<^sub>c, s\<^sub>c'), s\<^sub>a, s\<^sub>a') \<in> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>e\<^sub>\<alpha> \<longrightarrow> (\<Gamma>\<^sub>c,(P\<^sub>c, s\<^sub>c'),R\<^sub>c,G\<^sub>c) \<preceq>\<^sub>p\<^sub>I \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a,(P\<^sub>a, s\<^sub>a'),R\<^sub>a,G\<^sub>a))"
     by (rule prog_simI_sound, simp)
+qed
+
+abbreviation pestran\<^sub>a :: "'Env\<^sub>a \<Rightarrow> ('l,'k,'s,'s prog) pesconf \<Rightarrow> ('l,'k,'s,'s prog) actk \<Rightarrow> 
+                        ('l,'k,'s,'s prog) pesconf \<Rightarrow> bool" ("_ \<turnstile>\<^sub>a _ -pes-_\<rightarrow> _" [70,70] 60)
+  where "pestran\<^sub>a \<equiv> Simulation.pestran\<^sub>a"
+
+abbreviation pestran\<^sub>c :: "'Env\<^sub>a \<Rightarrow> ('l,'k,'s,'s prog) pesconf \<Rightarrow> ('l,'k,'s,'s prog) actk \<Rightarrow> 
+                        ('l,'k,'s,'s prog) pesconf \<Rightarrow> bool" ("_ \<turnstile>\<^sub>c _ -pes-_\<rightarrow> _" [70,70] 60)
+  where "pestran\<^sub>c \<equiv> Simulation.pestran\<^sub>c"
+
+end
+
