@@ -72,6 +72,8 @@ definition prog_sim_pre :: "[('s\<^sub>c com) option, ('s\<^sub>c \<times> 's\<^
   where " (P\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (P\<^sub>a, R\<^sub>a, G\<^sub>a) \<equiv> 
           (\<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> ((P\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((P\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a))"
 
+lemma prog_sim_pre_implies_sim: "\<lbrakk>(P\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (P\<^sub>a, R\<^sub>a, G\<^sub>a); (s\<^sub>c, s\<^sub>a) \<in> \<xi>\<rbrakk> \<Longrightarrow> ((P\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((P\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)"
+  by (simp add: prog_sim_pre_def)
 
 lemma prog_sim_init: "((P\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((P\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a) \<Longrightarrow> (s\<^sub>c, s\<^sub>a) \<in> \<alpha>"
   by (erule prog_sim.cases, simp)
@@ -152,9 +154,9 @@ lemma Conseq_Sim': "\<lbrakk>((P\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<pr
   by (simp add: related_transitions_def)
 
 theorem Conseq_Sound: "\<lbrakk>(P\<^sub>c, R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (P\<^sub>a, R\<^sub>a, G\<^sub>a); \<xi>\<^sub>' \<subseteq> \<xi>; \<gamma> \<subseteq> \<gamma>\<^sub>' \<and> \<gamma>\<^sub>' \<subseteq> \<alpha>; 
-      R\<^sub>c' \<subseteq> R\<^sub>c; R\<^sub>a' \<subseteq> R\<^sub>a; G\<^sub>c \<subseteq> G\<^sub>c'; G\<^sub>a \<subseteq> G\<^sub>a'\<rbrakk> \<Longrightarrow> (P\<^sub>c, R\<^sub>c', G\<^sub>c') \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (P\<^sub>a, R\<^sub>a', G\<^sub>a')"
+      R\<^sub>c' \<subseteq> R\<^sub>c; R\<^sub>a' \<subseteq> R\<^sub>a; G\<^sub>c \<subseteq> G\<^sub>c'; G\<^sub>a \<subseteq> G\<^sub>a'\<rbrakk> \<Longrightarrow> (P\<^sub>c, R\<^sub>c', G\<^sub>c') \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>'\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>'\<^sub>) (P\<^sub>a, R\<^sub>a', G\<^sub>a')"
   apply (simp add: prog_sim_pre_def)
-  by (meson Conseq_Sim order_refl order_trans prog_sim_init)
+  by (meson Conseq_Sim in_mono prog_sim_init)
 
 lemma None_Sim : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<subseteq> \<alpha>; Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>\<rbrakk> \<Longrightarrow> ((None, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>) ((None, s\<^sub>a), R\<^sub>a, G\<^sub>a)"
   apply (coinduction arbitrary: s\<^sub>c s\<^sub>a, clarsimp)

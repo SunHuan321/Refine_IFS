@@ -51,7 +51,7 @@ lemma zetaI_None: "zetaI \<zeta> (Some C\<^sub>c) = None \<Longrightarrow> \<zet
 lemma zetaI_Some: "zetaI \<zeta> (Some C\<^sub>c) = Some (Some C\<^sub>a) \<Longrightarrow> \<zeta> C\<^sub>c = Some C\<^sub>a"
   by (metis option.discI option.sel zetaI.simps(2))
 
-lemma sim_implies_simI: "\<lbrakk>((P\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((P\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a); \<zeta>\<^sub>1 = zetaI \<zeta> \<rbrakk> 
+theorem sim_implies_simI: "\<lbrakk>((P\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) ((P\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a); \<zeta>\<^sub>1 = zetaI \<zeta> \<rbrakk> 
             \<Longrightarrow> (\<Gamma>\<^sub>c, (P\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p\<^sub>I \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>1\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (P\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)"
   apply (coinduction arbitrary: P\<^sub>c P\<^sub>a s\<^sub>c s\<^sub>a, clarsimp)
   apply (rule conjI, simp add: prog_sim_init)
@@ -92,7 +92,7 @@ lemma prog_simI_sound: "\<lbrakk>(\<Gamma>\<^sub>c, (P\<^sub>c, s\<^sub>c), R\<^
   apply (erule prog_simI.cases, simp)
   by (simp add: related_transitions_def related_transitions_e_def)
 
-interpretation Simulation: PiCore_Sim ptranI\<^sub>c petranI\<^sub>c None ptranI\<^sub>a petranI\<^sub>a None prog_simI
+interpretation PiCore_SIMP_Refine: PiCore_Sim ptranI\<^sub>c petranI\<^sub>c None ptranI\<^sub>a petranI\<^sub>a None prog_simI
 proof
   show "\<And>\<Gamma> a b c d. (a, b) -e\<rightarrow> (c, d) \<Longrightarrow> a = c"
     by (simp add: etran.simps)
@@ -121,11 +121,31 @@ qed
 
 abbreviation pestran\<^sub>a :: "'Env\<^sub>a \<Rightarrow> ('l,'k,'s,'s prog) pesconf \<Rightarrow> ('l,'k,'s,'s prog) actk \<Rightarrow> 
                         ('l,'k,'s,'s prog) pesconf \<Rightarrow> bool" ("_ \<turnstile>\<^sub>a _ -pes-_\<rightarrow> _" [70,70] 60)
-  where "pestran\<^sub>a \<equiv> Simulation.pestran\<^sub>a"
+  where "pestran\<^sub>a \<equiv> PiCore_SIMP_Refine.pestran\<^sub>a"
 
 abbreviation pestran\<^sub>c :: "'Env\<^sub>a \<Rightarrow> ('l,'k,'s,'s prog) pesconf \<Rightarrow> ('l,'k,'s,'s prog) actk \<Rightarrow> 
                         ('l,'k,'s,'s prog) pesconf \<Rightarrow> bool" ("_ \<turnstile>\<^sub>c _ -pes-_\<rightarrow> _" [70,70] 60)
-  where "pestran\<^sub>c \<equiv> Simulation.pestran\<^sub>c"
+  where "pestran\<^sub>c \<equiv> PiCore_SIMP_Refine.pestran\<^sub>c"
+
+abbreviation e_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c, 's\<^sub>c prog) econf, ('s\<^sub>c \<times> 's\<^sub>c) set, ('s\<^sub>c \<times> 's\<^sub>c) set,
+                  ('s\<^sub>c \<times> 's\<^sub>a) set, 's\<^sub>c prog \<rightharpoonup> 's\<^sub>a prog, ('s\<^sub>c \<times> 's\<^sub>a) set,
+                  'Env\<^sub>a, ('l\<^sub>a,'k,'s\<^sub>a,'s\<^sub>a prog) econf, ('s\<^sub>a \<times> 's\<^sub>a) set, ('s\<^sub>a \<times> 's\<^sub>a) set] \<Rightarrow> bool"
+  where "e_sim \<equiv> PiCore_SIMP_Refine.e_sim"
+
+abbreviation es_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c, 's\<^sub>c prog) esconf, ('s\<^sub>c \<times> 's\<^sub>c) set, ('s\<^sub>c \<times> 's\<^sub>c) set, 
+                  'k, ('s\<^sub>c \<times> 's\<^sub>a) set, 
+                  ('l\<^sub>c,'k,'s\<^sub>c,'s\<^sub>c prog) event \<Rightarrow> ('l\<^sub>a,'k,'s\<^sub>a,'s\<^sub>a prog) event, 
+                  ('l\<^sub>c,'k,'s\<^sub>c,'s\<^sub>c prog) event \<Rightarrow> 's\<^sub>c prog \<rightharpoonup> 's\<^sub>a prog,
+                  'Env\<^sub>a, ('l\<^sub>a,'k,'s\<^sub>a,'s\<^sub>a prog) esconf, ('s\<^sub>a \<times> 's\<^sub>a) set, ('s\<^sub>a \<times> 's\<^sub>a) set] \<Rightarrow> bool"
+  where "es_sim \<equiv> PiCore_SIMP_Refine.es_sim"
+
+abbreviation pes_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'s\<^sub>c prog) pesconf, 
+                  ('s\<^sub>c \<times> 's\<^sub>a) set, 
+                  ('l\<^sub>c,'k,'s\<^sub>c,'s\<^sub>c prog) event \<Rightarrow> ('l\<^sub>a,'k,'s\<^sub>a,'s\<^sub>a prog) event, 
+                  ('l\<^sub>c,'k,'s\<^sub>c,'s\<^sub>c prog) event \<Rightarrow> 's\<^sub>c prog \<rightharpoonup> 's\<^sub>a prog,
+                  'Env\<^sub>a, ('l\<^sub>a,'k,'s\<^sub>a,'s\<^sub>a prog) pesconf] \<Rightarrow> bool"
+  where "pes_sim \<equiv> PiCore_SIMP_Refine.pes_sim"
+
 
 end
 

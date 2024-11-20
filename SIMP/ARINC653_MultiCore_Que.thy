@@ -45,22 +45,17 @@ definition ch_destqport :: "Config \<Rightarrow> Port \<Rightarrow> QChannel"
 
 datatype PartMode = IDLE | READY | RUN
 
-datatype EL = Core_InitE | ScheduleE | Send_Que_MessageE |  Recv_Que_MessageE
-
-datatype parameter = Port Port | Message Message | Partition Part
+datatype EL = Core_InitE  
+  | ScheduleE Part
+  | Send_Que_MessageE Port Message 
+  | Recv_Que_MessageE Port
 
 datatype Domain = P Part | S Sched | F 
 
-type_synonym EventLabel = "EL \<times> (parameter list \<times> Core)" 
+type_synonym EventLabel = "EL \<times> Core" 
 
-definition get_evt_label :: "EL \<Rightarrow> parameter list \<Rightarrow> Core \<Rightarrow> EventLabel" ("_ _ \<rhd> _" [0,0,0] 20)
-  where "get_evt_label el ps k \<equiv> (el,(ps,k))"
-
-definition get_evt_core :: "(EventLabel, 'k , 's, 'prog) event \<Rightarrow> Core"
-  where "get_evt_core ev =  snd (snd (the (label_e ev)))"
-
-definition get_evt_el :: "(EventLabel, 'k , 's, 'prog) event \<Rightarrow> EL"
-  where "get_evt_el ev =  fst (the (label_e ev))"
+definition get_evt_label :: "EL \<Rightarrow> Core \<Rightarrow> EventLabel" ("_ \<rhd> _" [0,0] 20)
+  where "get_evt_label el k \<equiv> (el,k)"
 
 primrec part_on_core :: "Config \<Rightarrow> Domain \<Rightarrow> Domain \<Rightarrow> bool"
   where "part_on_core cfg (P d1) d2 = (case d2 of
@@ -103,7 +98,7 @@ type_synonym Prog\<^sub>c = "State\<^sub>c com option"
 
 definition Core_Init\<^sub>c :: "Core \<Rightarrow> (EventLabel, Core, State\<^sub>c, Prog\<^sub>c) event" 
   where "Core_Init\<^sub>c k \<equiv> 
-    EVENT Core_InitE [] \<rhd> k 
+    EVENT Core_InitE \<rhd> k 
     THEN      
       \<acute>partst\<^sub>c := (\<lambda>p. if p2s conf p = c2s conf k \<and> \<acute>partst\<^sub>c p = IDLE then READY else \<acute>partst\<^sub>c p) 
     END"
@@ -119,7 +114,7 @@ definition System_Init\<^sub>c :: "Config \<Rightarrow> (State\<^sub>c \<times> 
 
 definition Schedule\<^sub>c :: "Core \<Rightarrow> Part \<Rightarrow> (EventLabel, Core, State\<^sub>c, Prog\<^sub>c) event" 
   where "Schedule\<^sub>c k p \<equiv> 
-    EVENT ScheduleE [Partition p] \<rhd> k 
+    EVENT ScheduleE p \<rhd> k 
     WHERE
       p2s conf p = c2s conf k \<and> (\<acute>partst\<^sub>c p \<noteq> IDLE) \<and> (\<acute>cur\<^sub>c (c2s conf k) = None 
           \<or> p2s conf (the (\<acute>cur\<^sub>c((c2s conf) k))) = c2s conf k)
@@ -136,7 +131,7 @@ definition Schedule\<^sub>c :: "Core \<Rightarrow> Part \<Rightarrow> (EventLabe
 
 definition Send_Que_Message\<^sub>c :: "Core \<Rightarrow> Port \<Rightarrow> Message \<Rightarrow> (EventLabel, Core, State\<^sub>c, Prog\<^sub>c) event" 
   where "Send_Que_Message\<^sub>c k p m \<equiv> 
-    EVENT Send_Que_MessageE [Port p, Message m] \<rhd> k 
+    EVENT Send_Que_MessageE p m \<rhd> k 
     WHERE
       is_src_qport conf p
       \<and> \<acute>cur\<^sub>c (c2s conf k) \<noteq> None
@@ -157,7 +152,7 @@ definition Send_Que_Message\<^sub>c :: "Core \<Rightarrow> Port \<Rightarrow> Me
 
 definition Recv_Que_Message\<^sub>c :: "Core \<Rightarrow> Port \<Rightarrow> (EventLabel, Core, State\<^sub>c, Prog\<^sub>c) event" 
   where "Recv_Que_Message\<^sub>c k p \<equiv> 
-    EVENT Recv_Que_MessageE [Port p] \<rhd> k 
+    EVENT Recv_Que_MessageE p \<rhd> k 
     WHERE
       is_dest_qport conf p 
       \<and> \<acute>cur\<^sub>c (c2s conf k) \<noteq> None
@@ -188,13 +183,25 @@ axiomatization s0\<^sub>c where s0c_init: "s0\<^sub>c \<equiv> fst (System_Init\
 axiomatization x0\<^sub>c where x0c_init: "x0\<^sub>c \<equiv> snd (System_Init\<^sub>c conf)"
 axiomatization C0\<^sub>c where C0c_init: "C0\<^sub>c = (ARINCXKernel_Spec\<^sub>c, s0\<^sub>c, x0\<^sub>c)"
 
+(*
 definition domevt\<^sub>c :: "State\<^sub>c \<Rightarrow> (EventLabel, Core, State\<^sub>c, Prog\<^sub>c) event \<Rightarrow> Domain"
   where "domevt\<^sub>c s e \<equiv> let c = get_evt_core e in (let el = get_evt_el e in  
-                         (if (el = Send_Que_MessageE \<or> el = Recv_Que_MessageE) 
+                         (if (el_is_on_Part el \<and> is_basicevt e) 
                               \<and> (cur\<^sub>c s) (c2s conf c) \<noteq> None
                               then P (the ((cur\<^sub>c s) (c2s conf c)))
-                          else if (el = Core_InitE \<or> el = ScheduleE) then S (c2s conf c)
+                          else if (el_is_on_Sched el \<and> is_basicevt e) then S (c2s conf c)
                           else F))" 
+*)
+
+primrec el_domevt\<^sub>c :: "EL \<Rightarrow> Core \<Rightarrow> State\<^sub>c \<Rightarrow> Domain"
+  where "el_domevt\<^sub>c Core_InitE k s = S (c2s conf k)"
+  | "el_domevt\<^sub>c (ScheduleE _) k s = S (c2s conf k)"
+  | "el_domevt\<^sub>c (Send_Que_MessageE _ _) k s = (case ((cur\<^sub>c s) (c2s conf k)) of None \<Rightarrow> F | Some p \<Rightarrow> P p)"
+  | "el_domevt\<^sub>c (Recv_Que_MessageE _) k s = (case ((cur\<^sub>c s) (c2s conf k)) of None \<Rightarrow> F | Some p \<Rightarrow> P p)"
+
+primrec domevt\<^sub>c :: "State\<^sub>c \<Rightarrow> (EventLabel, Core, State\<^sub>c, Prog\<^sub>c) event \<Rightarrow> Domain"
+  where "domevt\<^sub>c s (AnonyEvent _) = F"
+  | "domevt\<^sub>c s (BasicEvent e) = el_domevt\<^sub>c (fst (label e)) (snd (label e)) s"
 
 definition exec_step\<^sub>c :: "'Env \<Rightarrow> (EventLabel, Core, State\<^sub>c, Prog\<^sub>c, Domain) action \<Rightarrow> 
  ((EventLabel, Core, State\<^sub>c, Prog\<^sub>c) pesconf \<times> (EventLabel, Core, State\<^sub>c, Prog\<^sub>c) pesconf) set"
@@ -246,7 +253,7 @@ type_synonym Prog\<^sub>a = "State\<^sub>a com option"
 
 definition Core_Init\<^sub>a :: "Core \<Rightarrow> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a) event" 
   where "Core_Init\<^sub>a k \<equiv> 
-    EVENT Core_InitE [] \<rhd> k 
+    EVENT Core_InitE \<rhd> k 
     THEN      
       \<acute>partst\<^sub>a := (\<lambda>p. if p2s conf p = c2s conf k \<and> \<acute>partst\<^sub>a p = IDLE then READY else \<acute>partst\<^sub>a p)
     END"
@@ -260,7 +267,7 @@ definition System_Init\<^sub>a :: "Config \<Rightarrow> (State\<^sub>a \<times> 
 
 definition Schedule\<^sub>a :: "Core \<Rightarrow> Part \<Rightarrow> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a) event" 
   where "Schedule\<^sub>a k p \<equiv> 
-    EVENT ScheduleE [Partition p] \<rhd> k 
+    EVENT ScheduleE p \<rhd> k 
     WHERE
       p2s conf p = c2s conf k \<and> (\<acute>partst\<^sub>a p \<noteq> IDLE) \<and> (\<acute>cur\<^sub>a (c2s conf k) = None 
           \<or> p2s conf (the (\<acute>cur\<^sub>a((c2s conf) k))) = c2s conf k)
@@ -276,7 +283,7 @@ definition Schedule\<^sub>a :: "Core \<Rightarrow> Part \<Rightarrow> (EventLabe
 
 definition Send_Que_Message\<^sub>a :: "Core \<Rightarrow> Port \<Rightarrow> Message \<Rightarrow> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a) event" 
   where "Send_Que_Message\<^sub>a k p m \<equiv> 
-    EVENT Send_Que_MessageE [Port p, Message m] \<rhd> k 
+    EVENT Send_Que_MessageE p m \<rhd> k 
     WHERE
       is_src_qport conf p
       \<and> \<acute>cur\<^sub>a (c2s conf k) \<noteq> None
@@ -292,7 +299,7 @@ definition Send_Que_Message\<^sub>a :: "Core \<Rightarrow> Port \<Rightarrow> Me
 
 definition Recv_Que_Message\<^sub>a :: "Core \<Rightarrow> Port \<Rightarrow> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a) event" 
   where "Recv_Que_Message\<^sub>a k p \<equiv> 
-    EVENT Recv_Que_MessageE [Port p] \<rhd> k 
+    EVENT Recv_Que_MessageE p \<rhd> k 
     WHERE
       is_dest_qport conf p 
       \<and> \<acute>cur\<^sub>a (c2s conf k) \<noteq> None
@@ -317,13 +324,28 @@ axiomatization s0\<^sub>a where s0a_init: "s0\<^sub>a \<equiv> fst (System_Init\
 axiomatization x0\<^sub>a where x0a_init: "x0\<^sub>a \<equiv> snd (System_Init\<^sub>a conf)"
 axiomatization C0\<^sub>a where C0a_init: "C0\<^sub>a = (ARINCXKernel_Spec\<^sub>a, s0\<^sub>a, x0\<^sub>a)"
 
+(*
 definition domevt\<^sub>a :: "State\<^sub>a \<Rightarrow> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a) event \<Rightarrow> Domain"
   where "domevt\<^sub>a s e \<equiv> let c = get_evt_core e in (let el = get_evt_el e in  
-                         (if (el = Send_Que_MessageE \<or> el = Recv_Que_MessageE) 
+                         (if (el_is_on_Part el \<and> is_basicevt e) 
                               \<and> (cur\<^sub>a s) (c2s conf c) \<noteq> None
                               then P (the ((cur\<^sub>a s) (c2s conf c)))
-                          else if (el = Core_InitE \<or> el = ScheduleE) then S (c2s conf c)
+                          else if (el_is_on_Sched el \<and> is_basicevt e) then S (c2s conf c)
                           else F))" 
+
+lemma domevt\<^sub>a_anonyevt: "\<lbrakk>is_anonyevt e\<rbrakk> \<Longrightarrow> domevt\<^sub>a s e = F"
+  by (simp add: domevt\<^sub>a_def  anonyevt_isnot_basic)
+*)
+
+primrec el_domevt\<^sub>a :: "EL \<Rightarrow> Core \<Rightarrow> State\<^sub>a \<Rightarrow> Domain"
+  where "el_domevt\<^sub>a Core_InitE k s = S (c2s conf k)"
+  | "el_domevt\<^sub>a (ScheduleE _) k s = S (c2s conf k)"
+  | "el_domevt\<^sub>a (Send_Que_MessageE _ _) k s = (case ((cur\<^sub>a s) (c2s conf k)) of None \<Rightarrow> F | Some p \<Rightarrow> P p)"
+  | "el_domevt\<^sub>a (Recv_Que_MessageE _) k s = (case ((cur\<^sub>a s) (c2s conf k)) of None \<Rightarrow> F | Some p \<Rightarrow> P p)"
+
+primrec domevt\<^sub>a :: "State\<^sub>a \<Rightarrow> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a) event \<Rightarrow> Domain"
+  where "domevt\<^sub>a s (AnonyEvent _) = F"
+  | "domevt\<^sub>a s (BasicEvent e) = el_domevt\<^sub>a (fst (label e)) (snd (label e)) s"
 
 definition exec_step\<^sub>a :: "'Env \<Rightarrow> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a, Domain) action \<Rightarrow> 
  ((EventLabel, Core, State\<^sub>a, Prog\<^sub>a) pesconf \<times> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a) pesconf) set"
@@ -369,52 +391,32 @@ definition state_inv :: " (State\<^sub>c \<times> State\<^sub>a) set"
   where "state_inv = {(s\<^sub>c, s\<^sub>a). cur\<^sub>c s\<^sub>c = cur\<^sub>a s\<^sub>a \<and> partst\<^sub>c s\<^sub>c = partst\<^sub>a s\<^sub>a \<and> obsize\<^sub>c s\<^sub>c = qbufsize\<^sub>a s\<^sub>a
          \<and> (\<forall>q. qlock\<^sub>c s\<^sub>c q = None \<longrightarrow> obsize\<^sub>c s\<^sub>c q = qbufsize\<^sub>c s\<^sub>c q)}"
 
-definition event_map :: "(EventLabel, Core, State\<^sub>c, Prog\<^sub>c) event \<Rightarrow> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a) event"
-  where "event_map a = "
+primrec ev_el_map :: "EL \<Rightarrow> Core \<Rightarrow> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a) event"
+  where "ev_el_map Core_InitE k = Core_Init\<^sub>a k"
+  | "ev_el_map (ScheduleE p) k = Schedule\<^sub>a k p"
+  | "ev_el_map (Send_Que_MessageE p m) k = Send_Que_Message\<^sub>a k p m"
+  | "ev_el_map (Recv_Que_MessageE p) k = Recv_Que_Message\<^sub>a k p"
 
-subsection \<open>Rely-guarantee condition of programs\<close>
+primrec ev_map :: "(EventLabel, Core, State\<^sub>c, Prog\<^sub>c) event \<Rightarrow> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a) event"
+  where "ev_map (AnonyEvent _) = AnonyEvent None"
+  | "ev_map (BasicEvent e) = ev_el_map (fst (label e)) (snd (label e))"
 
+lemma ev_map_init: "ev_map (Core_Init\<^sub>c k) = Core_Init\<^sub>a k"
+  by (simp add: ev_map_def get_evt_label_def label_def Core_Init\<^sub>c_def)
 
-abbreviation "init\<^sub>c_rely k \<equiv> \<lbrace>(\<forall>p. p2s conf p = c2s conf k \<longrightarrow> \<ordfeminine>partst\<^sub>c p = \<ordmasculine>partst\<^sub>c p)\<rbrace> \<union> Id"
-abbreviation "init\<^sub>c_guar k \<equiv> \<lbrace>\<ordfeminine>cur\<^sub>c = \<ordmasculine>cur\<^sub>c \<and> \<ordfeminine>qbuf\<^sub>c = \<ordmasculine>qbuf\<^sub>c \<and> \<ordfeminine>qbufsize\<^sub>c = \<ordmasculine>qbufsize\<^sub>c
-            \<and> \<ordfeminine>qlock\<^sub>c = \<ordmasculine>qlock\<^sub>c \<and> \<ordfeminine>obsize\<^sub>c = \<ordmasculine>obsize\<^sub>c  
-            \<and> (\<forall>p. p2s conf p = c2s conf k \<longrightarrow> \<ordmasculine>partst\<^sub>c p = IDLE \<and> \<ordfeminine>partst\<^sub>c p = READY)
-            \<and> (\<forall>p. p2s conf p \<noteq> c2s conf k \<longrightarrow> \<ordfeminine>partst\<^sub>c p = \<ordmasculine>partst\<^sub>c p)\<rbrace> \<union> Id"
+lemma ev_map_schedule: "ev_map (Schedule\<^sub>c k p) = Schedule\<^sub>a k p"
+  by (simp add: ev_map_def get_evt_label_def label_def Schedule\<^sub>c_def)
+
+lemma ev_map_send: "ev_map (Send_Que_Message\<^sub>c k p m) = Send_Que_Message\<^sub>a k p m"
+  by (simp add: ev_map_def get_evt_label_def label_def Send_Que_Message\<^sub>c_def)
+
+lemma ev_map_recv: "ev_map (Recv_Que_Message\<^sub>c k p) = Recv_Que_Message\<^sub>a k p"
+  by (simp add: ev_map_def get_evt_label_def label_def Recv_Que_Message\<^sub>c_def)
 
 definition init_map :: "Core \<Rightarrow> State\<^sub>c com \<rightharpoonup> State\<^sub>a com"
   where "init_map k = 
         [ \<acute>partst\<^sub>c := (\<lambda>p. if p2s conf p = c2s conf k \<and> \<acute>partst\<^sub>c p = IDLE then READY else \<acute>partst\<^sub>c p)
        \<mapsto> \<acute>partst\<^sub>a := (\<lambda>p. if p2s conf p = c2s conf k \<and> \<acute>partst\<^sub>a p = IDLE then READY else \<acute>partst\<^sub>a p)]"
-
-definition init_pre :: "Core \<Rightarrow> (State\<^sub>c \<times> State\<^sub>a) set"
-  where "init_pre k = state_inv \<inter> {(s\<^sub>c, s\<^sub>a). (\<forall>p. p2s conf p = c2s conf k \<longrightarrow> partst\<^sub>c s\<^sub>c p = IDLE)}"
-abbreviation "init_post \<equiv> state_inv"
-
-
-abbreviation "init\<^sub>a_rely k \<equiv> UNIV"
-abbreviation "init\<^sub>a_guar k \<equiv> UNIV"
-
-lemma init_sim : "prog_sim_pre 
-      (Some (\<acute>partst\<^sub>c := (\<lambda>p. if p2s conf p = c2s conf k \<and> \<acute>partst\<^sub>c p = IDLE then READY else \<acute>partst\<^sub>c p)))
-      (init\<^sub>c_rely k) (init\<^sub>c_guar k) 
-      state_inv (init_map k) (init_pre k) init_post
-      (Some (\<acute>partst\<^sub>a := (\<lambda>p. if p2s conf p = c2s conf k \<and> \<acute>partst\<^sub>a p = IDLE then READY else \<acute>partst\<^sub>a p)))
-      (init\<^sub>a_rely k) (init\<^sub>a_guar k)"
-  apply (rule Basic_Sound, simp_all add: init_pre_def init_map_def)
-  apply (simp add: stable_alpha)
-   apply (rule stable_conj, simp add: stable_alpha)
-   apply (simp add: Stable_def related_transitions_def)
-  apply blast
-  apply clarify
-  apply (simp add: state_inv_def)
-  by force
-
-abbreviation "schedule\<^sub>c_rely k p \<equiv> \<lbrace>\<ordfeminine>cur\<^sub>c (c2s conf k) = \<ordmasculine>cur\<^sub>c (c2s conf k) \<and>
-                                   (\<forall>p. p2s conf p = c2s conf k \<longrightarrow> \<ordfeminine>partst\<^sub>c p = \<ordmasculine>partst\<^sub>c p)\<rbrace> \<union> Id"
-
-abbreviation "schedule\<^sub>c_guar k p \<equiv> \<lbrace>\<ordfeminine>qbuf\<^sub>c = \<ordmasculine>qbuf\<^sub>c \<and> \<ordfeminine>qbufsize\<^sub>c = \<ordmasculine>qbufsize\<^sub>c \<and> \<ordfeminine>qlock\<^sub>c = \<ordmasculine>qlock\<^sub>c 
-      \<and> \<ordfeminine>obsize\<^sub>c = \<ordmasculine>obsize\<^sub>c \<and> (\<forall>c. c \<noteq> k \<longrightarrow> \<ordfeminine>cur\<^sub>c (c2s conf c) = \<ordmasculine>cur\<^sub>c (c2s conf c))
-      \<and> (\<forall>p. p2s conf p \<noteq> c2s conf k \<longrightarrow> \<ordfeminine>partst\<^sub>c p = \<ordmasculine>partst\<^sub>c p)\<rbrace> \<union> Id"
 
 definition schedule_map :: "Core \<Rightarrow> Part \<Rightarrow> State\<^sub>c com \<rightharpoonup> State\<^sub>a com"
   where "schedule_map k p = 
@@ -433,6 +435,120 @@ definition schedule_map :: "Core \<Rightarrow> Part \<Rightarrow> State\<^sub>c 
            \<acute>cur\<^sub>a := \<acute>cur\<^sub>a((c2s conf k) := Some p);;
            \<acute>partst\<^sub>a := \<acute>partst\<^sub>a(p := RUN)
          END]"
+
+definition send_map :: "Core \<Rightarrow> Port \<Rightarrow> Message \<Rightarrow> State\<^sub>c com \<rightharpoonup> State\<^sub>a com"
+  where "send_map k p m = 
+        [ATOMIC
+          \<acute>qlock\<^sub>c := \<acute>qlock\<^sub>c (ch_srcqport conf p := None);;
+          \<acute>obsize\<^sub>c := \<acute>obsize\<^sub>c (ch_srcqport conf p := \<acute>qbufsize\<^sub>c (ch_srcqport conf p))
+         END
+      \<mapsto> ATOMIC
+          IF \<acute>qbufsize\<^sub>a (ch_srcqport conf p) < chmax conf (ch_srcqport conf p) THEN 
+            \<acute>qbuf\<^sub>a := \<acute>qbuf\<^sub>a (ch_srcqport conf p := \<acute>qbuf\<^sub>a (ch_srcqport conf p) @ [m]);;
+            \<acute>qbufsize\<^sub>a := \<acute>qbufsize\<^sub>a (ch_srcqport conf p := \<acute>qbufsize\<^sub>a (ch_srcqport conf p) + 1)
+          FI
+          END]"
+
+definition recv_map :: "Core \<Rightarrow> Port \<Rightarrow> State\<^sub>c com \<rightharpoonup> State\<^sub>a com"
+  where "recv_map k p = 
+        [ATOMIC
+          \<acute>qlock\<^sub>c := \<acute>qlock\<^sub>c (ch_destqport conf p := None);;
+          \<acute>obsize\<^sub>c := \<acute>obsize\<^sub>c (ch_destqport conf p := \<acute>qbufsize\<^sub>c (ch_destqport conf p))
+         END
+      \<mapsto> ATOMIC
+           IF \<acute>qbufsize\<^sub>a (ch_destqport conf p) > 0 THEN 
+             \<acute>qbuf\<^sub>a := \<acute>qbuf\<^sub>a (ch_destqport conf p := tl (\<acute>qbuf\<^sub>a (ch_destqport conf p)));;
+             \<acute>qbufsize\<^sub>a := \<acute>qbufsize\<^sub>a (ch_destqport conf p := \<acute>qbufsize\<^sub>a (ch_destqport conf p) - 1)
+           FI
+         END]"
+
+primrec ev_el_prog_map :: "EL \<Rightarrow> Core \<Rightarrow> State\<^sub>c com \<rightharpoonup> State\<^sub>a com"
+  where "ev_el_prog_map Core_InitE k = init_map k"
+  | "ev_el_prog_map (ScheduleE p) k = schedule_map k p"
+  | "ev_el_prog_map (Send_Que_MessageE p m) k = send_map k p m"
+  | "ev_el_prog_map (Recv_Que_MessageE p) k = recv_map k p"
+
+primrec ev_prog_map :: "(EventLabel, Core, State\<^sub>c, Prog\<^sub>c) event \<Rightarrow> State\<^sub>c com option \<rightharpoonup> State\<^sub>a com option"
+  where "ev_prog_map (AnonyEvent _) = Map.empty"
+  | "ev_prog_map (BasicEvent e) = zetaI (ev_el_prog_map (fst (label e)) (snd (label e)))"
+
+lemma ev_prog_map_init: "ev_prog_map (Core_Init\<^sub>c k) = zetaI (init_map k)"
+  by (simp add: ev_prog_map_def ev_el_prog_map_def get_evt_label_def label_def Core_Init\<^sub>c_def)
+
+lemma ev_prog_map_sched: "ev_prog_map (Schedule\<^sub>c k p) = zetaI (schedule_map k p)"
+  by (simp add: ev_prog_map_def ev_el_prog_map_def get_evt_label_def label_def Schedule\<^sub>c_def)
+
+lemma ev_prog_map_send: "ev_prog_map (Send_Que_Message\<^sub>c k p m) = zetaI (send_map k p m)"
+  by (simp add: ev_prog_map_def ev_el_prog_map_def get_evt_label_def label_def Send_Que_Message\<^sub>c_def)
+
+lemma ev_prog_map_recv: "ev_prog_map (Recv_Que_Message\<^sub>c k p) = zetaI (recv_map k p)"
+  by (simp add: ev_prog_map_def ev_el_prog_map_def get_evt_label_def label_def Recv_Que_Message\<^sub>c_def)
+
+lemma ARINC_dom_sim : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> state_inv; ev_map e\<^sub>c = e\<^sub>a \<rbrakk> \<Longrightarrow> domevt\<^sub>c s\<^sub>c e\<^sub>c = domevt\<^sub>a s\<^sub>a e\<^sub>a"
+  apply (case_tac e\<^sub>c, simp add: ev_map_def)
+  using domevt\<^sub>a_def domevt\<^sub>c_def apply force
+  apply (case_tac x2, case_tac a, case_tac aa)
+     apply (simp add: domevt\<^sub>a_def domevt\<^sub>c_def ev_map_def el_domevt\<^sub>a_def el_domevt\<^sub>c_def 
+            ev_el_prog_map_def label_def state_inv_def Core_Init\<^sub>a_def get_evt_label_def)
+     apply auto[1]
+     apply (simp add: domevt\<^sub>a_def domevt\<^sub>c_def ev_map_def el_domevt\<^sub>a_def el_domevt\<^sub>c_def 
+            ev_el_prog_map_def label_def state_inv_def Schedule\<^sub>a_def get_evt_label_def)
+    apply auto[1]
+     apply (simp add: domevt\<^sub>a_def domevt\<^sub>c_def ev_map_def el_domevt\<^sub>a_def el_domevt\<^sub>c_def 
+            ev_el_prog_map_def label_def state_inv_def Send_Que_Message\<^sub>a_def get_evt_label_def)
+   apply auto[1]
+     apply (simp add: domevt\<^sub>a_def domevt\<^sub>c_def ev_map_def el_domevt\<^sub>a_def el_domevt\<^sub>c_def 
+            ev_el_prog_map_def label_def state_inv_def Recv_Que_Message\<^sub>a_def get_evt_label_def)
+  by auto
+
+lemma ARINC_sim_state_ifs : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> state_inv; (t\<^sub>c, t\<^sub>a) \<in> state_inv\<rbrakk> \<Longrightarrow> s\<^sub>a \<sim>\<^sub>a d \<sim>\<^sub>a t\<^sub>a = s\<^sub>c \<sim>\<^sub>c d \<sim>\<^sub>c t\<^sub>c"
+  apply (case_tac d)
+    apply (simp add: state_equiv\<^sub>a_def state_equiv\<^sub>c_def state_obs_part\<^sub>c_def state_obs_part\<^sub>a_def
+         System_Init\<^sub>a_def System_Init\<^sub>c_def s0a_init s0c_init)
+  apply (smt (verit, del_insts) CollectD case_prodD obs_cap_equiva obs_cap_equivc obs_cap_part\<^sub>a_def 
+     obs_cap_part\<^sub>c_def state_inv_def)
+   apply (simp add: state_inv_def state_equiv\<^sub>a_def state_equiv\<^sub>c_def state_obs_sched\<^sub>c_def
+           state_obs_sched\<^sub>a_def System_Init\<^sub>a_def System_Init\<^sub>c_def s0a_init s0c_init)
+  by (simp add: state_equiv\<^sub>a_def state_equiv\<^sub>c_def)
+
+subsection \<open>Rely-guarantee condition of programs\<close>
+
+
+abbreviation "init\<^sub>c_rely k \<equiv> \<lbrace>(\<forall>p. p2s conf p = c2s conf k \<longrightarrow> \<ordfeminine>partst\<^sub>c p = \<ordmasculine>partst\<^sub>c p)\<rbrace> \<union> Id"
+abbreviation "init\<^sub>c_guar k \<equiv> \<lbrace>\<ordfeminine>cur\<^sub>c = \<ordmasculine>cur\<^sub>c \<and> \<ordfeminine>qbuf\<^sub>c = \<ordmasculine>qbuf\<^sub>c \<and> \<ordfeminine>qbufsize\<^sub>c = \<ordmasculine>qbufsize\<^sub>c
+            \<and> \<ordfeminine>qlock\<^sub>c = \<ordmasculine>qlock\<^sub>c \<and> \<ordfeminine>obsize\<^sub>c = \<ordmasculine>obsize\<^sub>c  
+            \<and> (\<forall>p. p2s conf p = c2s conf k \<longrightarrow> \<ordmasculine>partst\<^sub>c p = IDLE \<and> \<ordfeminine>partst\<^sub>c p = READY)
+            \<and> (\<forall>p. p2s conf p \<noteq> c2s conf k \<longrightarrow> \<ordfeminine>partst\<^sub>c p = \<ordmasculine>partst\<^sub>c p)\<rbrace> \<union> Id"
+
+abbreviation "init_pre k \<equiv> state_inv \<inter> {(s\<^sub>c, s\<^sub>a). (\<forall>p. p2s conf p = c2s conf k \<longrightarrow> partst\<^sub>c s\<^sub>c p = IDLE)}"
+abbreviation "init_post \<equiv> state_inv"
+
+
+abbreviation "init\<^sub>a_rely k \<equiv> UNIV"
+abbreviation "init\<^sub>a_guar k \<equiv> UNIV"
+
+lemma core_init_sim : "prog_sim_pre 
+      (Some (\<acute>partst\<^sub>c := (\<lambda>p. if p2s conf p = c2s conf k \<and> \<acute>partst\<^sub>c p = IDLE then READY else \<acute>partst\<^sub>c p)))
+      (init\<^sub>c_rely k) (init\<^sub>c_guar k) 
+      state_inv (init_map k) (init_pre k) init_post
+      (Some (\<acute>partst\<^sub>a := (\<lambda>p. if p2s conf p = c2s conf k \<and> \<acute>partst\<^sub>a p = IDLE then READY else \<acute>partst\<^sub>a p)))
+      (init\<^sub>a_rely k) (init\<^sub>a_guar k)"
+  apply (rule Basic_Sound, simp_all add: init_map_def)
+  apply (simp add: stable_alpha)
+   apply (rule stable_conj, simp add: stable_alpha)
+   apply (simp add: Stable_def related_transitions_def)
+  apply blast
+  apply clarify
+  apply (simp add: state_inv_def)
+  by force
+
+abbreviation "schedule\<^sub>c_rely k p \<equiv> \<lbrace>\<ordfeminine>cur\<^sub>c (c2s conf k) = \<ordmasculine>cur\<^sub>c (c2s conf k) \<and>
+                                   (\<forall>p. p2s conf p = c2s conf k \<longrightarrow> \<ordfeminine>partst\<^sub>c p = \<ordmasculine>partst\<^sub>c p)\<rbrace> \<union> Id"
+
+abbreviation "schedule\<^sub>c_guar k  \<equiv> \<lbrace>\<ordfeminine>qbuf\<^sub>c = \<ordmasculine>qbuf\<^sub>c \<and> \<ordfeminine>qbufsize\<^sub>c = \<ordmasculine>qbufsize\<^sub>c \<and> \<ordfeminine>qlock\<^sub>c = \<ordmasculine>qlock\<^sub>c 
+      \<and> \<ordfeminine>obsize\<^sub>c = \<ordmasculine>obsize\<^sub>c \<and> (\<forall>c. c \<noteq> k \<longrightarrow> \<ordfeminine>cur\<^sub>c (c2s conf c) = \<ordmasculine>cur\<^sub>c (c2s conf c))
+      \<and> (\<forall>p. p2s conf p \<noteq> c2s conf k \<longrightarrow> \<ordfeminine>partst\<^sub>c p = \<ordmasculine>partst\<^sub>c p)\<rbrace> \<union> Id"
+
 
 abbreviation "schedule_pre1 k \<equiv> {(s\<^sub>c, s\<^sub>a). 
   ((cur\<^sub>c s\<^sub>c) (c2s conf k) \<noteq> None \<longrightarrow> p2s conf (the ((cur\<^sub>c s\<^sub>c) (c2s conf k))) = c2s conf k) \<and>
@@ -474,7 +590,7 @@ lemma schedc_await_sat_post: "\<lbrakk>p2s conf p = c2s conf k;
            FI;;
            \<acute>cur\<^sub>c := \<acute>cur\<^sub>c(c2s conf k \<mapsto> p);;
            \<acute>partst\<^sub>c := \<acute>partst\<^sub>c (p := RUN))
-           sat [{s\<^sub>c}, Id, schedule\<^sub>c_guar k p, sched_await_post\<^sub>c s\<^sub>c k p]"
+           sat [{s\<^sub>c}, Id, schedule\<^sub>c_guar k, sched_await_post\<^sub>c s\<^sub>c k p]"
   apply (rule Await, simp_all add: stable_def, clarify)
   apply (case_tac "s\<^sub>c \<noteq> V")
    apply (rule Seq[where mid = "{}"])
@@ -583,7 +699,7 @@ lemma schedule_sim : "prog_sim_pre
          \<acute>cur\<^sub>c := \<acute>cur\<^sub>c((c2s conf k) := Some p);;
          \<acute>partst\<^sub>c := \<acute>partst\<^sub>c(p := RUN)
        END))
-      (schedule\<^sub>c_rely k p) (schedule\<^sub>c_guar k p) 
+      (schedule\<^sub>c_rely k p) (schedule\<^sub>c_guar k) 
       state_inv (schedule_map k p) (schdule_pre k p) schdule_post
       (Some 
       (ATOMIC
@@ -616,19 +732,6 @@ abbreviation "send\<^sub>c_guar k ch \<equiv>
     \<union> {(s, s'). \<exists>n. (qlock\<^sub>c s) ch = Some k \<and> s' = s \<lparr>qbufsize\<^sub>c := (qbufsize\<^sub>c s) (ch :=  n)\<rparr>}
     \<union> {(s, s'). \<exists>n. (qlock\<^sub>c s) ch = Some k \<and> s' = s \<lparr>qlock\<^sub>c := (qlock\<^sub>c s) (ch := None),
                                                 obsize\<^sub>c := (obsize\<^sub>c s) (ch := n) \<rparr>} \<union> Id"
-
-definition send_map :: "Core \<Rightarrow> Port \<Rightarrow> Message \<Rightarrow> State\<^sub>c com \<rightharpoonup> State\<^sub>a com"
-  where "send_map k p m = 
-        [ATOMIC
-          \<acute>qlock\<^sub>c := \<acute>qlock\<^sub>c (ch_srcqport conf p := None);;
-          \<acute>obsize\<^sub>c := \<acute>obsize\<^sub>c (ch_srcqport conf p := \<acute>qbufsize\<^sub>c (ch_srcqport conf p))
-         END
-      \<mapsto> ATOMIC
-          IF \<acute>qbufsize\<^sub>a (ch_srcqport conf p) < chmax conf (ch_srcqport conf p) THEN 
-            \<acute>qbuf\<^sub>a := \<acute>qbuf\<^sub>a (ch_srcqport conf p := \<acute>qbuf\<^sub>a (ch_srcqport conf p) @ [m]);;
-            \<acute>qbufsize\<^sub>a := \<acute>qbufsize\<^sub>a (ch_srcqport conf p := \<acute>qbufsize\<^sub>a (ch_srcqport conf p) + 1)
-          FI
-          END]"
 
 (*
 abbreviation "send_pre1 k p \<equiv> {(s\<^sub>c, s\<^sub>a). 
@@ -877,19 +980,6 @@ abbreviation "recv\<^sub>c_guar k ch \<equiv>
     \<union> {(s, s'). \<exists>n. (qlock\<^sub>c s) ch = Some k \<and> s' = s \<lparr>qlock\<^sub>c := (qlock\<^sub>c s) (ch := None),
                                                 obsize\<^sub>c := (obsize\<^sub>c s) (ch := n) \<rparr>} \<union> Id"
 
-definition recv_map :: "Core \<Rightarrow> Port  \<Rightarrow> State\<^sub>c com \<rightharpoonup> State\<^sub>a com"
-  where "recv_map k p = 
-        [ATOMIC
-          \<acute>qlock\<^sub>c := \<acute>qlock\<^sub>c (ch_destqport conf p := None);;
-          \<acute>obsize\<^sub>c := \<acute>obsize\<^sub>c (ch_destqport conf p := \<acute>qbufsize\<^sub>c (ch_destqport conf p))
-         END
-      \<mapsto> ATOMIC
-           IF \<acute>qbufsize\<^sub>a (ch_destqport conf p) > 0 THEN 
-             \<acute>qbuf\<^sub>a := \<acute>qbuf\<^sub>a (ch_destqport conf p := tl (\<acute>qbuf\<^sub>a (ch_destqport conf p)));;
-             \<acute>qbufsize\<^sub>a := \<acute>qbufsize\<^sub>a (ch_destqport conf p := \<acute>qbufsize\<^sub>a (ch_destqport conf p) - 1)
-           FI
-         END]"
-
 (*
 abbreviation "send_pre1 k p \<equiv> {(s\<^sub>c, s\<^sub>a). 
   ((cur\<^sub>c s\<^sub>c) (c2s conf k) \<noteq> None \<and> port_of_part conf p (the ((cur\<^sub>c s\<^sub>c) (c2s conf k)))) \<and>
@@ -1125,7 +1215,193 @@ lemma recv_sim: "prog_sim_pre (Some
   using recv_sim_none2 apply auto[1]
   using recv_unlock_sim by auto
 
-      
+abbreviation "evtsys_rely\<^sub>c k \<equiv> \<lbrace>\<ordfeminine>cur\<^sub>c (c2s conf k) = \<ordmasculine>cur\<^sub>c (c2s conf k) 
+     \<and> (\<forall>p. p2s conf p = c2s conf k \<longrightarrow> \<ordfeminine>partst\<^sub>c p = \<ordmasculine>partst\<^sub>c p)
+     \<and> (\<forall>ch. (\<ordmasculine>qlock\<^sub>c ch = Some k \<longrightarrow> \<ordfeminine>qlock\<^sub>c ch = \<ordmasculine>qlock\<^sub>c ch \<and> \<ordfeminine>qbuf\<^sub>c ch = \<ordmasculine>qbuf\<^sub>c ch 
+     \<and> \<ordfeminine>qbufsize\<^sub>c ch = \<ordmasculine>qbufsize\<^sub>c ch \<and> \<ordfeminine>obsize\<^sub>c ch = \<ordmasculine>obsize\<^sub>c ch))\<rbrace>"
 
+abbreviation "evtsys_guar\<^sub>c k \<equiv> \<lbrace>\<forall>k'. k' \<noteq> k \<longrightarrow> \<ordfeminine>cur\<^sub>c (c2s conf k') = \<ordmasculine>cur\<^sub>c (c2s conf k') 
+     \<and> (\<forall>p. p2s conf p \<noteq> c2s conf k \<longrightarrow> \<ordfeminine>partst\<^sub>c p = \<ordmasculine>partst\<^sub>c p)
+     \<and> (\<forall>ch. (\<ordmasculine>qlock\<^sub>c ch \<noteq> Some k \<longrightarrow> \<ordfeminine>qlock\<^sub>c ch = \<ordmasculine>qlock\<^sub>c ch \<and> \<ordfeminine>qbuf\<^sub>c ch = \<ordmasculine>qbuf\<^sub>c ch 
+     \<and> \<ordfeminine>qbufsize\<^sub>c ch = \<ordmasculine>qbufsize\<^sub>c ch \<and> \<ordfeminine>obsize\<^sub>c ch = \<ordmasculine>obsize\<^sub>c ch))\<rbrace> \<union> 
+     {(s, s'). \<exists>ch. (qlock\<^sub>c s) ch = None \<and> s' = s \<lparr>qlock\<^sub>c := (qlock\<^sub>c s) (ch:= Some k)\<rparr>}"
+
+abbreviation "evtsys_rely\<^sub>a k \<equiv> UNIV"
+abbreviation "evtsys_guar\<^sub>a k \<equiv> UNIV"
+
+lemma evtsys_rely_guar_compat: "i \<noteq> j \<Longrightarrow> evtsys_guar\<^sub>c i \<subseteq> evtsys_rely\<^sub>c j"
+  apply clarsimp
+  apply (rule conjI)
+  using inj_eq inj_surj_c2s apply fastforce
+  by auto
+
+lemma core_init_e_sim : "e_sim 
+     \<Gamma>\<^sub>c (Core_Init\<^sub>c k, s0\<^sub>c, x0\<^sub>c) (evtsys_rely\<^sub>c k) (evtsys_guar\<^sub>c k) 
+     state_inv ((zetaI (init_map k))) state_inv 
+     \<Gamma>\<^sub>a (Core_Init\<^sub>a k, s0\<^sub>a, x0\<^sub>a) UNIV UNIV"
+  apply (simp add: Core_Init\<^sub>c_def Core_Init\<^sub>a_def)
+  apply (rule_tac \<xi> = "init_pre k" in PiCore_SIMP_Refine.BasicEvt_Rule')
+       apply (simp add: rel_guard_eq_def)+
+     apply (simp add: Stable_e_def related_transitions_e_def s0c_init s0a_init)
+     apply auto[1]
+    apply (simp add: System_Init\<^sub>a_def System_Init\<^sub>c_def rel_guard_eq_def s0a_init s0c_init state_inv_def)
+   apply simp
+  apply clarsimp
+  apply (rule_tac \<zeta> = "init_map k" in sim_implies_simI)
+   apply (rule_tac \<xi> = "init_pre k" in prog_sim_pre_implies_sim, simp_all)
+  apply (rule_tac \<xi> = "init_pre k" and \<gamma> = state_inv and R\<^sub>c = "init\<^sub>c_rely k" and G\<^sub>c = "init\<^sub>c_guar k" 
+         and R\<^sub>a = UNIV and G\<^sub>a = UNIV in Conseq_Sound)
+  using core_init_sim apply blast
+  apply simp+
+     apply blast
+    apply simp
+  apply force
+  by simp
+
+lemma sched_e_sim: "(s\<^sub>c, s\<^sub>a) \<in> state_inv \<Longrightarrow> e_sim 
+        \<Gamma>\<^sub>c (Schedule\<^sub>c k p, s\<^sub>c, x\<^sub>c) (evtsys_rely\<^sub>c k) (evtsys_guar\<^sub>c k)
+        state_inv (zetaI (schedule_map k p)) state_inv 
+        \<Gamma>\<^sub>a (Schedule\<^sub>a k p, s\<^sub>a, x\<^sub>a) UNIV UNIV"
+  apply (simp add: Schedule\<^sub>c_def Schedule\<^sub>a_def)
+  apply (rule_tac \<xi> = "state_inv" in PiCore_SIMP_Refine.BasicEvt_Rule')
+       apply (simp add: state_inv_def rel_guard_eq_def)
+       apply auto[1]
+      apply simp
+  using stable_e_alpha apply blast
+    apply simp+
+  apply clarsimp
+  apply (rule_tac \<zeta> = "schedule_map k p" in sim_implies_simI)
+   apply (rule_tac \<xi> = "schdule_pre k p" in prog_sim_pre_implies_sim)
+  apply (rule_tac \<xi> = "schdule_pre k p" and \<gamma> = state_inv and R\<^sub>c = "schedule\<^sub>c_rely k p" and G\<^sub>c = "schedule\<^sub>c_guar k" 
+         and R\<^sub>a = UNIV and G\<^sub>a = UNIV in Conseq_Sound)
+  using schedule_sim apply auto[1]
+         apply simp_all
+    apply auto[1]
+  apply auto[1]
+  apply (simp add: rel_guard_and_def)
+  by force
+
+
+lemma send_e_sim: "(s\<^sub>c, s\<^sub>a) \<in> state_inv \<Longrightarrow> e_sim 
+        \<Gamma>\<^sub>c (Send_Que_Message\<^sub>c k p m, s\<^sub>c, x\<^sub>c) (evtsys_rely\<^sub>c k) (evtsys_guar\<^sub>c k)
+        state_inv (zetaI (send_map k p m)) state_inv 
+        \<Gamma>\<^sub>a (Send_Que_Message\<^sub>a k p m, s\<^sub>a, x\<^sub>a) UNIV UNIV"
+  apply (simp add: Send_Que_Message\<^sub>c_def Send_Que_Message\<^sub>a_def)
+  apply (rule_tac \<xi> = "state_inv" in PiCore_SIMP_Refine.BasicEvt_Rule')
+       apply (simp add: state_inv_def rel_guard_eq_def)
+       apply auto[1]
+      apply simp
+  using stable_e_alpha apply blast
+    apply simp+
+  apply clarsimp
+  apply (rule_tac \<zeta> = "send_map k p m" in sim_implies_simI)
+   apply (rule_tac \<xi> = "send_pre" in prog_sim_pre_implies_sim)
+    apply (rule_tac \<xi> = "send_pre" and \<gamma> = state_inv and R\<^sub>c = "send\<^sub>c_rely k (ch_srcqport conf p)" 
+    and G\<^sub>c = "send\<^sub>c_guar k (ch_srcqport conf p)" and R\<^sub>a = UNIV and G\<^sub>a = UNIV in Conseq_Sound)
+  using send_sim apply auto[1]
+         apply simp_all
+   apply auto[1]
+  apply (simp add: rel_guard_and_def)
+  by auto
+
+lemma recv_e_sim: "(s\<^sub>c, s\<^sub>a) \<in> state_inv \<Longrightarrow> e_sim 
+        \<Gamma>\<^sub>c (Recv_Que_Message\<^sub>c k p, s\<^sub>c, x\<^sub>c) (evtsys_rely\<^sub>c k) (evtsys_guar\<^sub>c k)
+        state_inv (zetaI (recv_map k p)) state_inv 
+        \<Gamma>\<^sub>a (Recv_Que_Message\<^sub>a k p, s\<^sub>a, x\<^sub>a) UNIV UNIV"
+  apply (simp add: Recv_Que_Message\<^sub>c_def Recv_Que_Message\<^sub>a_def)
+  apply (rule_tac \<xi> = "state_inv" in PiCore_SIMP_Refine.BasicEvt_Rule')
+       apply (simp add: state_inv_def rel_guard_eq_def)
+       apply auto[1]
+      apply simp
+  using stable_e_alpha apply blast
+    apply simp+
+  apply clarsimp
+  apply (rule_tac \<zeta> = "recv_map k p" in sim_implies_simI)
+   apply (rule_tac \<xi> = "recv_pre" in prog_sim_pre_implies_sim)
+    apply (rule_tac \<xi> = "recv_pre" and \<gamma> = state_inv and R\<^sub>c = "recv\<^sub>c_rely k (ch_destqport conf p)" 
+    and G\<^sub>c = "recv\<^sub>c_guar k (ch_destqport conf p)" and R\<^sub>a = UNIV and G\<^sub>a = UNIV in Conseq_Sound)
+  using recv_sim apply auto[1]
+         apply simp_all
+   apply auto[1]
+  apply (simp add: rel_guard_and_def)
+  by auto
+
+lemma EvtSys_on_Core_sim : "es_sim 
+      \<Gamma>\<^sub>c (EvtSys_on_Core\<^sub>c k, s0\<^sub>c, x0\<^sub>c) (evtsys_rely\<^sub>c k) (evtsys_guar\<^sub>c k)
+      k state_inv ev_map ev_prog_map
+      \<Gamma>\<^sub>a (EvtSys_on_Core\<^sub>a k, s0\<^sub>a, x0\<^sub>a) UNIV UNIV"
+  apply (simp add: EvtSys_on_Core\<^sub>c_def EvtSys_on_Core\<^sub>a_def)
+  apply (rule_tac \<gamma> = state_inv in PiCore_SIMP_Refine.EvtSeq_rule, simp_all)
+  apply (simp add: ev_prog_map_init)
+  using core_init_e_sim apply force
+    apply (simp add: Core_Init\<^sub>c_def, clarsimp)
+   apply (rule_tac \<gamma> = state_inv in PiCore_SIMP_Refine.EvtSys_rule, simp add: Schedule\<^sub>c_def
+          Send_Que_Message\<^sub>c_def Recv_Que_Message\<^sub>c_def)
+        apply auto[1]
+       apply auto[1]
+  using ev_map_schedule apply blast
+  using ev_map_send apply blast
+  using ev_map_recv apply blast
+      apply auto[1] 
+        apply (simp add: ev_map_schedule ev_prog_map_sched)
+  using sched_e_sim apply force
+       apply (simp add: ev_map_send ev_prog_map_send)
+  using send_e_sim apply force
+      apply (simp add: ev_map_recv ev_prog_map_recv)
+  using recv_e_sim apply force
+     apply simp+
+  using stable_e_alpha apply blast
+  by (simp add: ev_map_init)
+
+theorem Arinc_sim: "pes_sim \<Gamma>\<^sub>c C0\<^sub>c state_inv ev_map ev_prog_map \<Gamma>\<^sub>a C0\<^sub>a"
+  apply (simp add: C0c_init C0a_init)
+  apply (rule_tac R\<^sub>c = evtsys_rely\<^sub>c and G\<^sub>c = evtsys_guar\<^sub>c and R\<^sub>a = evtsys_rely\<^sub>a and G\<^sub>a = evtsys_guar\<^sub>a 
+        in PiCore_SIMP_Refine.Pes_rule)
+   apply (simp add: ARINCXKernel_Spec\<^sub>c_def ARINCXKernel_Spec\<^sub>a_def, clarsimp)
+  using EvtSys_on_Core_sim apply force
+  using evtsys_rely_guar_compat by blast
+
+interpretation ARINC_Sim_IFS: PiCore_Sim_IFS prog_simI 
+  ptranI\<^sub>c petranI\<^sub>c None \<Gamma>\<^sub>c C0\<^sub>c "exec_step\<^sub>c \<Gamma>\<^sub>c" interf state_equiv\<^sub>c state_obs\<^sub>c domevt\<^sub>c
+  ptranI\<^sub>a petranI\<^sub>a None \<Gamma>\<^sub>a C0\<^sub>a "exec_step\<^sub>a \<Gamma>\<^sub>a" interf state_equiv\<^sub>a state_obs\<^sub>a domevt\<^sub>a
+  state_inv ev_map ev_prog_map
+proof
+  show " \<forall>a b c u. a \<sim>\<^sub>cu\<sim>\<^sub>c b \<and> b \<sim>\<^sub>cu\<sim>\<^sub>c c \<longrightarrow> a \<sim>\<^sub>cu\<sim>\<^sub>c c"
+    using state_equiv_transitivec by blast
+  show "\<forall>a b u. a \<sim>\<^sub>cu\<sim>\<^sub>c b \<longrightarrow> b \<sim>\<^sub>cu\<sim>\<^sub>c a"
+    using state_equiv_symmetricc by blast
+  show "\<forall>a u. a \<sim>\<^sub>cu\<sim>\<^sub>c a"
+    using state_equiv_reflexivec by auto
+  show "\<And>a. exec_step\<^sub>c \<Gamma>\<^sub>c a \<equiv> {(P, Q). \<Gamma>\<^sub>c \<turnstile>\<^sub>c P -pes-actk a\<rightarrow> Q \<and> ((\<exists>e k. actk a = EvtEnt e\<sharp>k 
+        \<and> eventof a = e \<and> domevt\<^sub>c (gets P) e = domain a) \<or> (\<exists>c k. actk a = Cmd c\<sharp>k \<and> 
+        eventof a = getx P k \<and> domevt\<^sub>c (gets P) (eventof a) = domain a))}"
+    by (simp add: exec_step\<^sub>c_def)
+  show "\<forall>a b c u. a \<sim>\<^sub>au\<sim>\<^sub>a b \<and> b \<sim>\<^sub>au\<sim>\<^sub>a c \<longrightarrow> a \<sim>\<^sub>au\<sim>\<^sub>a c"
+    by (meson state_equiv_transitivea)
+  show "\<forall>a b u. a \<sim>\<^sub>au\<sim>\<^sub>a b \<longrightarrow> b \<sim>\<^sub>au\<sim>\<^sub>a a"
+    using state_equiv_symmetrica by blast
+  show "\<forall>a u. a \<sim>\<^sub>au\<sim>\<^sub>a a"
+    by (simp add: state_equiv_reflexivea)
+  show "\<And>a. exec_step\<^sub>a \<Gamma>\<^sub>a a \<equiv> {(P, Q). \<Gamma>\<^sub>a \<turnstile>\<^sub>c P -pes-actk a\<rightarrow> Q \<and> ((\<exists>e k. actk a = EvtEnt e\<sharp>k \<and> 
+        eventof a = e \<and> domevt\<^sub>a (gets P) e = domain a) \<or> (\<exists>c k. actk a = Cmd c\<sharp>k 
+        \<and> eventof a = getx P k \<and> domevt\<^sub>a (gets P) (eventof a) = domain a))}"
+    by (simp add: exec_step\<^sub>a_def)
+  show "pes_sim \<Gamma>\<^sub>c C0\<^sub>c recv_post ev_map ev_prog_map \<Gamma>\<^sub>a C0\<^sub>a"
+    by (simp add: Arinc_sim)
+  show "\<And>s\<^sub>c s\<^sub>a e\<^sub>c e\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> recv_post \<Longrightarrow> ev_map e\<^sub>c = e\<^sub>a \<Longrightarrow> domevt\<^sub>c s\<^sub>c e\<^sub>c = domevt\<^sub>a s\<^sub>a e\<^sub>a"
+    by (meson ARINC_dom_sim)
+  show "interf \<preceq>\<^sub>p interf"
+    by (simp add: policy_refine_refl)
+  show "\<And>s\<^sub>c s\<^sub>a t\<^sub>c t\<^sub>a d. (s\<^sub>c, s\<^sub>a) \<in> recv_post \<Longrightarrow> (t\<^sub>c, t\<^sub>a) \<in> recv_post \<Longrightarrow> s\<^sub>a \<sim>\<^sub>ad\<sim>\<^sub>a t\<^sub>a = s\<^sub>c \<sim>\<^sub>cd\<sim>\<^sub>c t\<^sub>c"
+    using ARINC_sim_state_ifs by presburger
+qed
+
+theorem ARINC_abs_lr_imp: "InfoFlow.local_respectC C0\<^sub>a (exec_step\<^sub>a \<Gamma>\<^sub>a) interf state_equiv\<^sub>a \<Longrightarrow> 
+                           InfoFlow.local_respectC C0\<^sub>c (exec_step\<^sub>c \<Gamma>\<^sub>c) interf state_equiv\<^sub>c"
+  by (simp add: ARINC_Sim_IFS.PiCore_abs_lr_imp)
+
+theorem ARINC_abs_wsc_imp: "InfoFlow.weak_step_consistentC C0\<^sub>a (exec_step\<^sub>a \<Gamma>\<^sub>a) interf state_equiv\<^sub>a \<Longrightarrow> 
+                            InfoFlow.weak_step_consistentC C0\<^sub>c (exec_step\<^sub>c \<Gamma>\<^sub>c) interf state_equiv\<^sub>c"
+  by (simp add: ARINC_Sim_IFS.PiCore_abs_wsc_imp)
 
 end

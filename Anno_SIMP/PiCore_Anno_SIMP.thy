@@ -85,7 +85,6 @@ lemma commit_p_defI: "c \<in> commit_pI \<Gamma> (guar, post) \<Longrightarrow> 
 lemma rgsound_pI: "rghoare_pI \<Gamma> P pre rely guar post \<Longrightarrow> prog_validityI \<Gamma> P pre rely guar post"
   using rgsound_p by blast
 
-print_locale event_hoare
 
 interpretation event_hoare ptranI petranI None cpts_pI cpts_of_pI prog_validityI ann_preserves_p 
                            assume_pI commit_pI preserves_p rghoare_pI
@@ -110,7 +109,6 @@ proof
     by (simp add: Anno_SIMP_Hoare_Plus.rgsound_p)
 qed
 
-
 abbreviation simp_rghoare_e :: "'Env \<Rightarrow> ('l, 'k, 's, 's ann_prog option) event \<Rightarrow> 's set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> 's set \<Rightarrow> bool" 
 ("_ \<turnstile> _ sat\<^sub>e [_, _, _, _]" [60,60,0,0,0,0] 45)
   where "simp_rghoare_e \<equiv> rghoare_e"
@@ -123,7 +121,6 @@ abbreviation simp_pestran :: "'Env \<Rightarrow> ('l,'k,'s, 's ann_prog option) 
                             \<Rightarrow> ('l,'k,'s,'s ann_prog option) pesconf \<Rightarrow> bool"  ("_ \<turnstile> _ -pes-_\<rightarrow> _" [70,70] 60)
   where "simp_pestran \<equiv> pestran"
 
-thm ptran_def
 end
 
 

@@ -264,7 +264,7 @@ theorem BasicEvt_Rule: "\<lbrakk>\<xi> \<subseteq> g\<^sub>c \<rightleftharpoons
   by (meson Stable_def)
 *)
 
-theorem BasicEvt_Rule: "\<lbrakk>\<xi> \<subseteq> g\<^sub>c \<rightleftharpoons>\<^sub>g g\<^sub>a; \<xi> \<subseteq> \<alpha>; Stable_e \<xi> ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>e\<^sub>\<alpha>); (s\<^sub>c, s\<^sub>a) \<in> \<xi>;
+theorem BasicEvt_Rule': "\<lbrakk>\<xi> \<subseteq> g\<^sub>c \<rightleftharpoons>\<^sub>g g\<^sub>a; \<xi> \<subseteq> \<alpha>; Stable_e \<xi> ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>e\<^sub>\<alpha>); (s\<^sub>c, s\<^sub>a) \<in> \<xi>;
      P\<^sub>a \<noteq> fin_com\<^sub>a;
     \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<inter> (g\<^sub>c \<and>\<^sub>g g\<^sub>a) \<longrightarrow> (\<Gamma>\<^sub>c, (P\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (P\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)\<rbrakk> \<Longrightarrow>
     (\<Gamma>\<^sub>c, (BasicEvent (l\<^sub>c, g\<^sub>c, P\<^sub>c), s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>)
@@ -288,12 +288,12 @@ theorem BasicEvt_Rule: "\<lbrakk>\<xi> \<subseteq> g\<^sub>c \<rightleftharpoons
    apply (meson Event\<^sub>c.noevtent_notran0 act.distinct(1))
   by (meson Stable_e_def)
 
-theorem BasicEvt_Rule': "\<lbrakk>Stable_e (g\<^sub>c \<rightleftharpoons>\<^sub>g g\<^sub>a) ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>e\<^sub>\<alpha>); (s\<^sub>c, s\<^sub>a) \<in> ((g\<^sub>c \<rightleftharpoons>\<^sub>g g\<^sub>a) \<inter> \<alpha>);
+theorem BasicEvt_Rule: "\<lbrakk>Stable_e (g\<^sub>c \<rightleftharpoons>\<^sub>g g\<^sub>a) ((R\<^sub>c \<union> Id, R\<^sub>a \<union> Id)\<^sub>e\<^sub>\<alpha>); (s\<^sub>c, s\<^sub>a) \<in> ((g\<^sub>c \<rightleftharpoons>\<^sub>g g\<^sub>a) \<inter> \<alpha>);
      P\<^sub>a \<noteq> fin_com\<^sub>a;
     \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> (\<alpha> \<inter> (g\<^sub>c \<and>\<^sub>g g\<^sub>a)) \<longrightarrow> (\<Gamma>\<^sub>c, (P\<^sub>c, s\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>) (\<Gamma>\<^sub>a, (P\<^sub>a, s\<^sub>a), R\<^sub>a, G\<^sub>a)\<rbrakk> \<Longrightarrow>
     (\<Gamma>\<^sub>c, (BasicEvent (l\<^sub>c, g\<^sub>c, P\<^sub>c), s\<^sub>c, x\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>e \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<gamma>\<^sub>)
     (\<Gamma>\<^sub>a, (BasicEvent (l\<^sub>a, g\<^sub>a, P\<^sub>a),s\<^sub>a, x\<^sub>a), R\<^sub>a, G\<^sub>a)"
-  by (metis BasicEvt_Rule Int_iff Int_lower1 Int_lower2 stable_e_alpha stable_e_conj)
+  by (metis BasicEvt_Rule' Int_iff Int_lower1 Int_lower2 stable_e_alpha stable_e_conj)
 
 coinductive es_sim :: "['Env\<^sub>c, ('l\<^sub>c,'k,'s\<^sub>c,'prog\<^sub>c) esconf, ('s\<^sub>c \<times> 's\<^sub>c) set, ('s\<^sub>c \<times> 's\<^sub>c) set, 
                   'k, ('s\<^sub>c \<times> 's\<^sub>a) set, 
@@ -853,7 +853,7 @@ theorem Pes_rule : "\<lbrakk>\<forall>k. (\<Gamma>\<^sub>c, (pes\<^sub>c k, s\<^
 
 end
  
-locale PiCore_RGSim = 
+locale PiCore_Sim_IFS = 
        Sim: PiCore_Sim ptran\<^sub>c petran\<^sub>c fin_com\<^sub>c ptran\<^sub>a petran\<^sub>a fin_com\<^sub>a +
        InfoFlow\<^sub>c: InfoFlow ptran\<^sub>c petran\<^sub>c fin_com\<^sub>c \<Gamma>\<^sub>c C0\<^sub>c step\<^sub>c interference\<^sub>c vpeq\<^sub>c obs\<^sub>c dome\<^sub>c +
        InfoFlow\<^sub>a: InfoFlow ptran\<^sub>a petran\<^sub>a fin_com\<^sub>a \<Gamma>\<^sub>a C0\<^sub>a step\<^sub>a interference\<^sub>a vpeq\<^sub>a obs\<^sub>a dome\<^sub>a
