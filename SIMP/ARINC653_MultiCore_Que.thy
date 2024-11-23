@@ -16,6 +16,9 @@ typedecl Core
 
 typedecl QChannel
 
+consts ARINC_Env\<^sub>c :: "SIMP_Env\<^sub>c"
+consts ARINC_Env\<^sub>a :: "SIMP_Env\<^sub>a"
+
 record Config = c2s :: "Core \<Rightarrow> Sched"
                 p2s :: "Part \<Rightarrow> Sched"
                 p2p :: "Port \<Rightarrow> Part"
@@ -203,7 +206,7 @@ primrec domevt\<^sub>c :: "State\<^sub>c \<Rightarrow> (EventLabel, Core, State\
   where "domevt\<^sub>c s (AnonyEvent _) = F"
   | "domevt\<^sub>c s (BasicEvent e) = el_domevt\<^sub>c (fst (label e)) (snd (label e)) s"
 
-definition exec_step\<^sub>c :: "'Env \<Rightarrow> (EventLabel, Core, State\<^sub>c, Prog\<^sub>c, Domain) action \<Rightarrow> 
+definition exec_step\<^sub>c :: "SIMP_Env\<^sub>c \<Rightarrow> (EventLabel, Core, State\<^sub>c, Prog\<^sub>c, Domain) action \<Rightarrow> 
  ((EventLabel, Core, State\<^sub>c, Prog\<^sub>c) pesconf \<times> (EventLabel, Core, State\<^sub>c, Prog\<^sub>c) pesconf) set"
   where "exec_step\<^sub>c \<Gamma>\<^sub>c a \<equiv> {(P,Q). (\<Gamma>\<^sub>c \<turnstile>\<^sub>c P-pes-(actk a)\<rightarrow> Q) \<and>((\<exists>e k. actk a = ((EvtEnt e)\<sharp>k) \<and> eventof a = e 
                          \<and> domevt\<^sub>c (gets P) e = domain a) \<or> (\<exists>c k. actk a = ((Cmd c)\<sharp>k) 
@@ -241,6 +244,20 @@ lemma state_equiv_symmetricc : "s \<sim>\<^sub>c d \<sim>\<^sub>c t \<Longrighta
 lemma state_equiv_reflexivec : "s \<sim>\<^sub>c d \<sim>\<^sub>c s"
   by (simp add:state_equiv\<^sub>c_def)
 
+
+interpretation ARINC653\<^sub>c: InfoFlow ptranI\<^sub>c petranI\<^sub>c None ARINC_Env\<^sub>c C0\<^sub>c "exec_step\<^sub>c ARINC_Env\<^sub>c" interf state_equiv\<^sub>c state_obs\<^sub>c domevt\<^sub>c
+proof
+  show "\<forall>a b c u. a \<sim>\<^sub>cu\<sim>\<^sub>c b \<and> b \<sim>\<^sub>cu\<sim>\<^sub>c c \<longrightarrow> a \<sim>\<^sub>cu\<sim>\<^sub>c c"
+    using state_equiv_transitivec by blast
+  show "\<forall>a b u. a \<sim>\<^sub>cu\<sim>\<^sub>c b \<longrightarrow> b \<sim>\<^sub>cu\<sim>\<^sub>c a"
+    using state_equiv_symmetricc by blast
+  show "\<forall>a u. a \<sim>\<^sub>cu\<sim>\<^sub>c a"
+    by (simp add: state_equiv_reflexivec)
+  show "\<And>a. exec_step\<^sub>c ARINC_Env\<^sub>c a \<equiv> {(P, Q). ARINC_Env\<^sub>c \<turnstile>\<^sub>c P -pes-actk a\<rightarrow> Q \<and> 
+        ((\<exists>e k. actk a = EvtEnt e\<sharp>k \<and> eventof a = e \<and> domevt\<^sub>c (gets P) e = domain a) 
+        \<or> (\<exists>c k. actk a = Cmd c\<sharp>k \<and> eventof a = getx P k \<and> domevt\<^sub>c (gets P) (eventof a) = domain a))}"
+    by (simp add: exec_step\<^sub>c_def) 
+qed
 
 subsubsection \<open>Abstraction Specification\<close>
 
@@ -324,18 +341,6 @@ axiomatization s0\<^sub>a where s0a_init: "s0\<^sub>a \<equiv> fst (System_Init\
 axiomatization x0\<^sub>a where x0a_init: "x0\<^sub>a \<equiv> snd (System_Init\<^sub>a conf)"
 axiomatization C0\<^sub>a where C0a_init: "C0\<^sub>a = (ARINCXKernel_Spec\<^sub>a, s0\<^sub>a, x0\<^sub>a)"
 
-(*
-definition domevt\<^sub>a :: "State\<^sub>a \<Rightarrow> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a) event \<Rightarrow> Domain"
-  where "domevt\<^sub>a s e \<equiv> let c = get_evt_core e in (let el = get_evt_el e in  
-                         (if (el_is_on_Part el \<and> is_basicevt e) 
-                              \<and> (cur\<^sub>a s) (c2s conf c) \<noteq> None
-                              then P (the ((cur\<^sub>a s) (c2s conf c)))
-                          else if (el_is_on_Sched el \<and> is_basicevt e) then S (c2s conf c)
-                          else F))" 
-
-lemma domevt\<^sub>a_anonyevt: "\<lbrakk>is_anonyevt e\<rbrakk> \<Longrightarrow> domevt\<^sub>a s e = F"
-  by (simp add: domevt\<^sub>a_def  anonyevt_isnot_basic)
-*)
 
 primrec el_domevt\<^sub>a :: "EL \<Rightarrow> Core \<Rightarrow> State\<^sub>a \<Rightarrow> Domain"
   where "el_domevt\<^sub>a Core_InitE k s = S (c2s conf k)"
@@ -347,7 +352,7 @@ primrec domevt\<^sub>a :: "State\<^sub>a \<Rightarrow> (EventLabel, Core, State\
   where "domevt\<^sub>a s (AnonyEvent _) = F"
   | "domevt\<^sub>a s (BasicEvent e) = el_domevt\<^sub>a (fst (label e)) (snd (label e)) s"
 
-definition exec_step\<^sub>a :: "'Env \<Rightarrow> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a, Domain) action \<Rightarrow> 
+definition exec_step\<^sub>a :: "SIMP_Env\<^sub>a \<Rightarrow> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a, Domain) action \<Rightarrow> 
  ((EventLabel, Core, State\<^sub>a, Prog\<^sub>a) pesconf \<times> (EventLabel, Core, State\<^sub>a, Prog\<^sub>a) pesconf) set"
   where "exec_step\<^sub>a \<Gamma>\<^sub>a a \<equiv> {(P,Q). (\<Gamma>\<^sub>a \<turnstile>\<^sub>a P-pes-(actk a)\<rightarrow> Q) \<and>((\<exists>e k. actk a = ((EvtEnt e)\<sharp>k) \<and> eventof a = e 
                          \<and> domevt\<^sub>a (gets P) e = domain a) \<or> (\<exists>c k. actk a = ((Cmd c)\<sharp>k) 
@@ -511,7 +516,21 @@ lemma ARINC_sim_state_ifs : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> state_inv; (t
            state_obs_sched\<^sub>a_def System_Init\<^sub>a_def System_Init\<^sub>c_def s0a_init s0c_init)
   by (simp add: state_equiv\<^sub>a_def state_equiv\<^sub>c_def)
 
-subsection \<open>Rely-guarantee condition of programs\<close>
+interpretation ARINC653\<^sub>a: InfoFlow ptranI\<^sub>a petranI\<^sub>a None ARINC_Env\<^sub>a C0\<^sub>a "exec_step\<^sub>a ARINC_Env\<^sub>a" interf state_equiv\<^sub>a state_obs\<^sub>a domevt\<^sub>a
+proof
+  show "\<forall>a b c u. a \<sim>\<^sub>au\<sim>\<^sub>a b \<and> b \<sim>\<^sub>au\<sim>\<^sub>a c \<longrightarrow> a \<sim>\<^sub>au\<sim>\<^sub>a c"
+    using state_equiv_transitivea by blast
+  show "\<forall>a b u. a \<sim>\<^sub>au\<sim>\<^sub>a b \<longrightarrow> b \<sim>\<^sub>au\<sim>\<^sub>a a"
+    using state_equiv_symmetrica by blast
+  show " \<forall>a u. a \<sim>\<^sub>au\<sim>\<^sub>a a"
+    by (simp add: state_equiv_reflexivea)
+  show "\<And>a. exec_step\<^sub>a ARINC_Env\<^sub>a a \<equiv> {(P, Q). ARINC_Env\<^sub>a \<turnstile>\<^sub>a P -pes-actk a\<rightarrow> Q \<and> 
+        ((\<exists>e k. actk a = EvtEnt e\<sharp>k \<and> eventof a = e \<and> domevt\<^sub>a (gets P) e = domain a) \<or> 
+        (\<exists>c k. actk a = Cmd c\<sharp>k \<and> eventof a = getx P k \<and> domevt\<^sub>a (gets P) (eventof a) = domain a))} "
+    by (simp add: exec_step\<^sub>a_def) 
+qed
+
+subsection \<open>Rely-guarantee Proof of programs\<close>
 
 
 abbreviation "init\<^sub>c_rely k \<equiv> \<lbrace>(\<forall>p. p2s conf p = c2s conf k \<longrightarrow> \<ordfeminine>partst\<^sub>c p = \<ordmasculine>partst\<^sub>c p)\<rbrace> \<union> Id"
@@ -1215,6 +1234,8 @@ lemma recv_sim: "prog_sim_pre (Some
   using recv_sim_none2 apply auto[1]
   using recv_unlock_sim by auto
 
+subsection \<open>Rely-guarantee Proof for event systems\<close>
+
 abbreviation "evtsys_rely\<^sub>c k \<equiv> \<lbrace>\<ordfeminine>cur\<^sub>c (c2s conf k) = \<ordmasculine>cur\<^sub>c (c2s conf k) 
      \<and> (\<forall>p. p2s conf p = c2s conf k \<longrightarrow> \<ordfeminine>partst\<^sub>c p = \<ordmasculine>partst\<^sub>c p)
      \<and> (\<forall>ch. (\<ordmasculine>qlock\<^sub>c ch = Some k \<longrightarrow> \<ordfeminine>qlock\<^sub>c ch = \<ordmasculine>qlock\<^sub>c ch \<and> \<ordfeminine>qbuf\<^sub>c ch = \<ordmasculine>qbuf\<^sub>c ch 
@@ -1361,47 +1382,27 @@ theorem Arinc_sim: "pes_sim \<Gamma>\<^sub>c C0\<^sub>c state_inv ev_map ev_prog
   using EvtSys_on_Core_sim apply force
   using evtsys_rely_guar_compat by blast
 
-interpretation ARINC_Sim_IFS: PiCore_Sim_IFS prog_simI 
-  ptranI\<^sub>c petranI\<^sub>c None \<Gamma>\<^sub>c C0\<^sub>c "exec_step\<^sub>c \<Gamma>\<^sub>c" interf state_equiv\<^sub>c state_obs\<^sub>c domevt\<^sub>c
-  ptranI\<^sub>a petranI\<^sub>a None \<Gamma>\<^sub>a C0\<^sub>a "exec_step\<^sub>a \<Gamma>\<^sub>a" interf state_equiv\<^sub>a state_obs\<^sub>a domevt\<^sub>a
+subsection \<open>Refinement between implementation and Abstraction\<close>
+
+interpretation ARINC_Sim_IFS: PiCore_Sim_IFS prog_simI
+  ptranI\<^sub>c petranI\<^sub>c None ARINC_Env\<^sub>c C0\<^sub>c "exec_step\<^sub>c ARINC_Env\<^sub>c" interf state_equiv\<^sub>c state_obs\<^sub>c domevt\<^sub>c
+  ptranI\<^sub>a petranI\<^sub>a None ARINC_Env\<^sub>a C0\<^sub>a "exec_step\<^sub>a ARINC_Env\<^sub>a" interf state_equiv\<^sub>a state_obs\<^sub>a domevt\<^sub>a
   state_inv ev_map ev_prog_map
 proof
-  show " \<forall>a b c u. a \<sim>\<^sub>cu\<sim>\<^sub>c b \<and> b \<sim>\<^sub>cu\<sim>\<^sub>c c \<longrightarrow> a \<sim>\<^sub>cu\<sim>\<^sub>c c"
-    using state_equiv_transitivec by blast
-  show "\<forall>a b u. a \<sim>\<^sub>cu\<sim>\<^sub>c b \<longrightarrow> b \<sim>\<^sub>cu\<sim>\<^sub>c a"
-    using state_equiv_symmetricc by blast
-  show "\<forall>a u. a \<sim>\<^sub>cu\<sim>\<^sub>c a"
-    using state_equiv_reflexivec by auto
-  show "\<And>a. exec_step\<^sub>c \<Gamma>\<^sub>c a \<equiv> {(P, Q). \<Gamma>\<^sub>c \<turnstile>\<^sub>c P -pes-actk a\<rightarrow> Q \<and> ((\<exists>e k. actk a = EvtEnt e\<sharp>k 
-        \<and> eventof a = e \<and> domevt\<^sub>c (gets P) e = domain a) \<or> (\<exists>c k. actk a = Cmd c\<sharp>k \<and> 
-        eventof a = getx P k \<and> domevt\<^sub>c (gets P) (eventof a) = domain a))}"
-    by (simp add: exec_step\<^sub>c_def)
-  show "\<forall>a b c u. a \<sim>\<^sub>au\<sim>\<^sub>a b \<and> b \<sim>\<^sub>au\<sim>\<^sub>a c \<longrightarrow> a \<sim>\<^sub>au\<sim>\<^sub>a c"
-    by (meson state_equiv_transitivea)
-  show "\<forall>a b u. a \<sim>\<^sub>au\<sim>\<^sub>a b \<longrightarrow> b \<sim>\<^sub>au\<sim>\<^sub>a a"
-    using state_equiv_symmetrica by blast
-  show "\<forall>a u. a \<sim>\<^sub>au\<sim>\<^sub>a a"
-    by (simp add: state_equiv_reflexivea)
-  show "\<And>a. exec_step\<^sub>a \<Gamma>\<^sub>a a \<equiv> {(P, Q). \<Gamma>\<^sub>a \<turnstile>\<^sub>c P -pes-actk a\<rightarrow> Q \<and> ((\<exists>e k. actk a = EvtEnt e\<sharp>k \<and> 
-        eventof a = e \<and> domevt\<^sub>a (gets P) e = domain a) \<or> (\<exists>c k. actk a = Cmd c\<sharp>k 
-        \<and> eventof a = getx P k \<and> domevt\<^sub>a (gets P) (eventof a) = domain a))}"
-    by (simp add: exec_step\<^sub>a_def)
-  show "pes_sim \<Gamma>\<^sub>c C0\<^sub>c recv_post ev_map ev_prog_map \<Gamma>\<^sub>a C0\<^sub>a"
+  show "pes_sim ARINC_Env\<^sub>c C0\<^sub>c recv_post ev_map ev_prog_map ARINC_Env\<^sub>a C0\<^sub>a"
     by (simp add: Arinc_sim)
   show "\<And>s\<^sub>c s\<^sub>a e\<^sub>c e\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> recv_post \<Longrightarrow> ev_map e\<^sub>c = e\<^sub>a \<Longrightarrow> domevt\<^sub>c s\<^sub>c e\<^sub>c = domevt\<^sub>a s\<^sub>a e\<^sub>a"
-    by (meson ARINC_dom_sim)
+    by (simp add: ARINC_dom_sim)
   show "interf \<preceq>\<^sub>p interf"
     by (simp add: policy_refine_refl)
   show "\<And>s\<^sub>c s\<^sub>a t\<^sub>c t\<^sub>a d. (s\<^sub>c, s\<^sub>a) \<in> recv_post \<Longrightarrow> (t\<^sub>c, t\<^sub>a) \<in> recv_post \<Longrightarrow> s\<^sub>a \<sim>\<^sub>ad\<sim>\<^sub>a t\<^sub>a = s\<^sub>c \<sim>\<^sub>cd\<sim>\<^sub>c t\<^sub>c"
-    using ARINC_sim_state_ifs by presburger
+    using ARINC_sim_state_ifs by auto
 qed
 
-theorem ARINC_abs_lr_imp: "InfoFlow.local_respectC C0\<^sub>a (exec_step\<^sub>a \<Gamma>\<^sub>a) interf state_equiv\<^sub>a \<Longrightarrow> 
-                           InfoFlow.local_respectC C0\<^sub>c (exec_step\<^sub>c \<Gamma>\<^sub>c) interf state_equiv\<^sub>c"
+theorem ARINC_abs_lr_imp: "ARINC653\<^sub>a.local_respectC \<Longrightarrow> ARINC653\<^sub>c.local_respectC"
   by (simp add: ARINC_Sim_IFS.PiCore_abs_lr_imp)
 
-theorem ARINC_abs_wsc_imp: "InfoFlow.weak_step_consistentC C0\<^sub>a (exec_step\<^sub>a \<Gamma>\<^sub>a) interf state_equiv\<^sub>a \<Longrightarrow> 
-                            InfoFlow.weak_step_consistentC C0\<^sub>c (exec_step\<^sub>c \<Gamma>\<^sub>c) interf state_equiv\<^sub>c"
+theorem ARINC_abs_wsc_imp: "ARINC653\<^sub>a.weak_step_consistentC \<Longrightarrow> ARINC653\<^sub>c.weak_step_consistentC"
   by (simp add: ARINC_Sim_IFS.PiCore_abs_wsc_imp)
 
 end

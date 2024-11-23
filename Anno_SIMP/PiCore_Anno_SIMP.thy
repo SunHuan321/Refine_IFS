@@ -2,28 +2,30 @@ theory PiCore_Anno_SIMP
   imports Anno_SIMP_Hoare_Plus "../PiCore/PiCore_Hoare"
 begin
 
-abbreviation ptranI :: "'Env \<Rightarrow> ('s conf \<times> 's conf) set"
+typedecl Anno_Env
+
+abbreviation ptranI :: "Anno_Env \<Rightarrow> ('s conf \<times> 's conf) set"
 where "ptranI \<Gamma> \<equiv> ptran"
 
-abbreviation petranI :: "'Env \<Rightarrow> 's conf \<Rightarrow> 's conf \<Rightarrow> bool"
+abbreviation petranI :: "Anno_Env \<Rightarrow> 's conf \<Rightarrow> 's conf \<Rightarrow> bool"
 where "petranI \<Gamma> \<equiv> petran'"
 
-abbreviation cpts_pI :: "'Env \<Rightarrow> 's confs set"
+abbreviation cpts_pI :: "Anno_Env \<Rightarrow> 's confs set"
 where "cpts_pI \<Gamma> \<equiv> cpts_p"
 
-abbreviation cpts_of_pI :: "'Env \<Rightarrow> ('s ann_prog) option \<Rightarrow> 's \<Rightarrow> ('s confs) set" where
+abbreviation cpts_of_pI :: "Anno_Env \<Rightarrow> ('s ann_prog) option \<Rightarrow> 's \<Rightarrow> ('s confs) set" where
   "cpts_of_pI \<Gamma> \<equiv> cpts_of_p" 
 
-abbreviation prog_validityI :: "'Env \<Rightarrow> ('s ann_prog) option \<Rightarrow> 's set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> 's set \<Rightarrow> bool"
+abbreviation prog_validityI :: "Anno_Env \<Rightarrow> ('s ann_prog) option \<Rightarrow> 's set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> 's set \<Rightarrow> bool"
 where "prog_validityI \<Gamma> P \<equiv> prog_validity P"
 
-abbreviation assume_pI :: "'Env \<Rightarrow> ('s set \<times> ('s \<times> 's) set) \<Rightarrow> ('s confs) set" 
+abbreviation assume_pI :: "Anno_Env \<Rightarrow> ('s set \<times> ('s \<times> 's) set) \<Rightarrow> ('s confs) set" 
 where "assume_pI \<Gamma> \<equiv> assume_p"
 
-abbreviation commit_pI :: "'Env \<Rightarrow> (('s \<times> 's) set \<times> 's set) \<Rightarrow> ('s confs) set" 
+abbreviation commit_pI :: "Anno_Env \<Rightarrow> (('s \<times> 's) set \<times> 's set) \<Rightarrow> ('s confs) set" 
   where "commit_pI \<Gamma> \<equiv> commit_p"
 
-abbreviation rghoare_pI :: "'Env \<Rightarrow> [('s ann_prog) option, 's set, ('s \<times> 's) set, ('s \<times> 's) set, 's set] \<Rightarrow> bool"
+abbreviation rghoare_pI :: "Anno_Env \<Rightarrow> [('s ann_prog) option, 's set, ('s \<times> 's) set, ('s \<times> 's) set, 's set] \<Rightarrow> bool"
 ("_ \<turnstile>\<^sub>I _ sat\<^sub>p [_, _, _, _]" [60,0,0,0,0] 45)
 where "rghoare_pI \<Gamma> \<equiv> rghoare_p"
 
@@ -109,15 +111,15 @@ proof
     by (simp add: Anno_SIMP_Hoare_Plus.rgsound_p)
 qed
 
-abbreviation simp_rghoare_e :: "'Env \<Rightarrow> ('l, 'k, 's, 's ann_prog option) event \<Rightarrow> 's set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> 's set \<Rightarrow> bool" 
+abbreviation simp_rghoare_e :: "Anno_Env \<Rightarrow> ('l, 'k, 's, 's ann_prog option) event \<Rightarrow> 's set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> 's set \<Rightarrow> bool" 
 ("_ \<turnstile> _ sat\<^sub>e [_, _, _, _]" [60,60,0,0,0,0] 45)
   where "simp_rghoare_e \<equiv> rghoare_e"
 
-abbreviation simp_rghoare_es :: "'Env \<Rightarrow> ('l, 'k, 's, 's ann_prog option) rgformula_ess \<Rightarrow> 's set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> 's set \<Rightarrow> bool" 
+abbreviation simp_rghoare_es :: "Anno_Env \<Rightarrow> ('l, 'k, 's, 's ann_prog option) rgformula_ess \<Rightarrow> 's set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> ('s \<times> 's) set \<Rightarrow> 's set \<Rightarrow> bool" 
 ("_ \<turnstile> _ sat\<^sub>s [_, _, _, _]" [60,60,0,0,0,0] 45)
 where "simp_rghoare_es \<equiv> rghoare_es"
 
-abbreviation simp_pestran :: "'Env \<Rightarrow> ('l,'k,'s, 's ann_prog option) pesconf \<Rightarrow> ('l,'k,'s,'s ann_prog option ) actk 
+abbreviation simp_pestran :: "Anno_Env \<Rightarrow> ('l,'k,'s, 's ann_prog option) pesconf \<Rightarrow> ('l,'k,'s,'s ann_prog option ) actk 
                             \<Rightarrow> ('l,'k,'s,'s ann_prog option) pesconf \<Rightarrow> bool"  ("_ \<turnstile> _ -pes-_\<rightarrow> _" [70,70] 60)
   where "simp_pestran \<equiv> pestran"
 

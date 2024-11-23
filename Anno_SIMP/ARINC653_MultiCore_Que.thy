@@ -15,6 +15,8 @@ typedecl Core
 
 typedecl QChannel
 
+consts ARINC_Env :: "Anno_Env"
+
 record Config = c2s :: "Core \<Rightarrow> Sched"
                 p2s :: "Part \<Rightarrow> Sched"
                 p2p :: "Port \<Rightarrow> Part"
@@ -240,7 +242,7 @@ axiomatization C0 where C0_init: "C0 = (paresys_spec ARINCXKernel_Spec, s0, x0)"
 
 subsection \<open>Functional correctness by rely guarantee proof\<close>
 
-definition Evt_sat_RG:: "'Env \<Rightarrow> (EventLabel, Core, State, Prog) event \<Rightarrow> (State) rgformula \<Rightarrow> bool" ("(_\<turnstile>_ sat _)" [60, 60,60] 61)
+definition Evt_sat_RG:: "Anno_Env \<Rightarrow> (EventLabel, Core, State, Prog) event \<Rightarrow> (State) rgformula \<Rightarrow> bool" ("(_\<turnstile>_ sat _)" [60, 60,60] 61)
   where "Evt_sat_RG \<Gamma> e rg \<equiv>  \<Gamma> \<turnstile> e sat\<^sub>e [Pre\<^sub>f rg, Rely\<^sub>f rg, Guar\<^sub>f rg, Post\<^sub>f rg]"
 
 
@@ -665,7 +667,7 @@ lemma state_equiv_reflexive : "s \<sim> d \<sim> s"
   by (simp add:state_equiv_def)
 
 
-definition exec_step :: "'Env \<Rightarrow> (EventLabel, Core, State, Prog, Domain) action \<Rightarrow> 
+definition exec_step :: "Anno_Env \<Rightarrow> (EventLabel, Core, State, Prog, Domain) action \<Rightarrow> 
  ((EventLabel, Core, State, Prog) pesconf \<times> (EventLabel, Core, State, Prog) pesconf) set"
   where "exec_step \<Gamma> a \<equiv> {(P,Q). (\<Gamma> \<turnstile> P-pes-(actk a)\<rightarrow> Q) \<and>((\<exists>e k. actk a = ((EvtEnt e)\<sharp>k) \<and> eventof a = e 
                          \<and> domevt (gets P) e = domain a) \<or> (\<exists>c k. actk a = ((Cmd c)\<sharp>k) 
@@ -1341,7 +1343,7 @@ lemma uwce_SCE_help: "\<forall>k. ef \<in> all_evts_es (fst (ARINCXKernel_Spec k
   then show ?thesis by auto
 qed
 
-interpretation PiCore_IFS.InfoFlow ptranI petranI None \<Gamma> C0 "exec_step \<Gamma>" interf state_equiv state_obs domevt
+interpretation ARINC653: PiCore_IFS.InfoFlow ptranI petranI None ARINC_Env C0 "exec_step ARINC_Env" interf state_equiv state_obs domevt
 proof
   show "\<forall>a b c u. a \<sim>u\<sim> b \<and> b \<sim>u\<sim> c \<longrightarrow> a \<sim>u\<sim> c"
     using state_equiv_def by presburger
@@ -1349,32 +1351,26 @@ proof
     using simp_vpeq_sym by blast
   show "\<forall>a u. a \<sim>u\<sim> a"
     by (simp add: simp_vpeq_refl)
-  show "\<And>a. exec_step \<Gamma> a \<equiv> {(P, Q). \<Gamma> \<turnstile> P -pes-actk a\<rightarrow> Q \<and>
+  show "\<And>a. exec_step ARINC_Env a \<equiv> {(P, Q). ARINC_Env \<turnstile> P -pes-actk a\<rightarrow> Q \<and>
        ((\<exists>e k. actk a = EvtEnt e\<sharp>k \<and> eventof a = e \<and> domevt (gets P) e = domain a) \<or>
        (\<exists>c k. actk a = Cmd c\<sharp>k \<and> eventof a = getx P k \<and> domevt (gets P) (eventof a) = domain a))}"
     by (simp add: exec_step_def)
 qed
 
-lemma uwc_oc: "observed_consistentC"
-  apply(simp add:observed_consistentC_def)
+lemma uwc_oc: "ARINC653.observed_consistentC"
+  apply(simp add:ARINC653.observed_consistentC_def)
   by(simp add:state_equiv_def)
 
-lemma uwc_lr: "InfoFlow.local_respectC C0 (exec_step \<Gamma>) interf state_equiv"
+lemma uwc_lr: "ARINC653.local_respectC "
   apply (rule rg_lr_imp_lr)
   apply (simp add: local_respect_events_def all_evts_def, clarify)
   using all_evts_def[of ARINCXKernel_Spec] uwce_LRE_help 
   using noninterf_def  by blast
 
-lemma uwc_sc: "InfoFlow.weak_step_consistentC C0 (exec_step \<Gamma>) interf state_equiv"
+lemma uwc_sc: "ARINC653.weak_step_consistentC"
   apply (rule rg_sc_imp_sc)
   apply (simp add: step_consistent_events_def all_evts_def, clarify)
   using all_evts_def[of ARINCXKernel_Spec] uwce_SCE_help
   using noninterf_def by metis
-
-lemma "SM_IFS.nonleakage C0 (exec_step \<Gamma>) domain obsC vpeqC interf"
-  by (simp add: PiCore_nonleakage uwc_oc uwc_sc)
-
-theorem "SM_IFS.noninfluence0 C0 (exec_step \<Gamma>) domain obsC vpeqC interf"
-  by (simp add: PiCore_noninfluence0 uwc_lr uwc_oc uwc_sc)
 
 end
