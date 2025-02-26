@@ -589,8 +589,8 @@ lemma Basic_Await_Sim: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> \<xi>; \<xi> \<sub
 theorem Basic_Await_Sound: "\<lbrakk>\<xi> \<subseteq> \<alpha>;  Stable \<xi> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; \<zeta> (Basic f\<^sub>c) = Some (Await b\<^sub>a C\<^sub>a);
       Stable \<gamma> (R\<^sub>c\<^sup>=, R\<^sub>a\<^sup>=)\<^sub>\<alpha>; \<gamma> \<subseteq> \<alpha>; not_stuck b\<^sub>a C\<^sub>a;
       \<forall>s\<^sub>c s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi> \<longrightarrow> s\<^sub>a \<in> b\<^sub>a \<and> (s\<^sub>c, f\<^sub>c s\<^sub>c) \<in> G\<^sub>c;
-      \<forall>s\<^sub>c s\<^sub>a.  \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi>}  \<inter> {s\<^sub>a}, Id, G\<^sub>a, {s\<^sub>a'. (f\<^sub>c s\<^sub>c, s\<^sub>a') \<in> \<gamma>}]\<rbrakk> \<Longrightarrow> (
-      Some (Basic f\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some (Await b\<^sub>a C\<^sub>a), R\<^sub>a, G\<^sub>a)"
+      \<forall>s\<^sub>c s\<^sub>a.  \<turnstile> Await b\<^sub>a C\<^sub>a sat [{s\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> \<xi>}  \<inter> {s\<^sub>a}, Id, G\<^sub>a, {s\<^sub>a'. (f\<^sub>c s\<^sub>c, s\<^sub>a') \<in> \<gamma>}]\<rbrakk> \<Longrightarrow> 
+      (Some (Basic f\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some (Await b\<^sub>a C\<^sub>a), R\<^sub>a, G\<^sub>a)"
   by (simp add: not_stuck_def prog_sim_pre_def Basic_Await_Sim)
 
 

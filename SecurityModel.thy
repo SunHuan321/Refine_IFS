@@ -376,7 +376,6 @@ definition weak_step_consistent :: " bool"
 definition local_respect :: "bool" 
   where "local_respect \<equiv> \<forall>a d s s'. reachable0 s \<longrightarrow> \<not> domain a \<leadsto> d \<and> (s, s') \<in> step a \<longrightarrow> s \<sim>d\<sim> s'"
 
-
 lemma sources_unwinding_step:
     "\<lbrakk>s \<approx> sources (a # as) d \<approx> t; weak_step_consistent; (s, s') \<in> step a; (t, t') \<in> step a;
       reachable0  s; reachable0 t\<rbrakk>  \<Longrightarrow> s' \<approx> sources as d \<approx> t'"

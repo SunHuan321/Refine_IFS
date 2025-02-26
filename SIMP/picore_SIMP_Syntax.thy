@@ -1,6 +1,6 @@
 section \<open>Concrete Syntax of PiCore-SIMP\<close>
 
-theory picore_SIMP_Syntax 
+theory picore_SIMP_Syntax
 imports "RG_Tran" "../PiCore/PiCore_Semantics" (*PiCore_RG_IFS *)
 
 (*keywords "procedures" :: thy_decl*)

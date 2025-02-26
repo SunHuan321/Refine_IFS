@@ -390,6 +390,20 @@ lemma state_equiv_symmetrica : "s \<sim>\<^sub>a d \<sim>\<^sub>a t \<Longrighta
 lemma state_equiv_reflexivea : "s \<sim>\<^sub>a d \<sim>\<^sub>a s"
   by (simp add:state_equiv\<^sub>a_def)
 
+interpretation ARINC653\<^sub>a: InfoFlow ptranI\<^sub>a petranI\<^sub>a None ARINC_Env\<^sub>a C0\<^sub>a "exec_step\<^sub>a ARINC_Env\<^sub>a" interf state_equiv\<^sub>a state_obs\<^sub>a domevt\<^sub>a
+proof
+  show "\<forall>a b c u. a \<sim>\<^sub>au\<sim>\<^sub>a b \<and> b \<sim>\<^sub>au\<sim>\<^sub>a c \<longrightarrow> a \<sim>\<^sub>au\<sim>\<^sub>a c"
+    using state_equiv_transitivea by blast
+  show "\<forall>a b u. a \<sim>\<^sub>au\<sim>\<^sub>a b \<longrightarrow> b \<sim>\<^sub>au\<sim>\<^sub>a a"
+    using state_equiv_symmetrica by blast
+  show " \<forall>a u. a \<sim>\<^sub>au\<sim>\<^sub>a a"
+    by (simp add: state_equiv_reflexivea)
+  show "\<And>a. exec_step\<^sub>a ARINC_Env\<^sub>a a \<equiv> {(P, Q). ARINC_Env\<^sub>a \<turnstile>\<^sub>a P -pes-actk a\<rightarrow> Q \<and> 
+        ((\<exists>e k. actk a = EvtEnt e\<sharp>k \<and> eventof a = e \<and> domevt\<^sub>a (gets P) e = domain a) \<or> 
+        (\<exists>c k. actk a = Cmd c\<sharp>k \<and> eventof a = getx P k \<and> domevt\<^sub>a (gets P) (eventof a) = domain a))} "
+    by (simp add: exec_step\<^sub>a_def) 
+qed
+
 subsection \<open>Simulation Relation\<close>
 
 definition state_inv :: " (State\<^sub>c \<times> State\<^sub>a) set" 
@@ -515,20 +529,6 @@ lemma ARINC_sim_state_ifs : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> state_inv; (t
    apply (simp add: state_inv_def state_equiv\<^sub>a_def state_equiv\<^sub>c_def state_obs_sched\<^sub>c_def
            state_obs_sched\<^sub>a_def System_Init\<^sub>a_def System_Init\<^sub>c_def s0a_init s0c_init)
   by (simp add: state_equiv\<^sub>a_def state_equiv\<^sub>c_def)
-
-interpretation ARINC653\<^sub>a: InfoFlow ptranI\<^sub>a petranI\<^sub>a None ARINC_Env\<^sub>a C0\<^sub>a "exec_step\<^sub>a ARINC_Env\<^sub>a" interf state_equiv\<^sub>a state_obs\<^sub>a domevt\<^sub>a
-proof
-  show "\<forall>a b c u. a \<sim>\<^sub>au\<sim>\<^sub>a b \<and> b \<sim>\<^sub>au\<sim>\<^sub>a c \<longrightarrow> a \<sim>\<^sub>au\<sim>\<^sub>a c"
-    using state_equiv_transitivea by blast
-  show "\<forall>a b u. a \<sim>\<^sub>au\<sim>\<^sub>a b \<longrightarrow> b \<sim>\<^sub>au\<sim>\<^sub>a a"
-    using state_equiv_symmetrica by blast
-  show " \<forall>a u. a \<sim>\<^sub>au\<sim>\<^sub>a a"
-    by (simp add: state_equiv_reflexivea)
-  show "\<And>a. exec_step\<^sub>a ARINC_Env\<^sub>a a \<equiv> {(P, Q). ARINC_Env\<^sub>a \<turnstile>\<^sub>a P -pes-actk a\<rightarrow> Q \<and> 
-        ((\<exists>e k. actk a = EvtEnt e\<sharp>k \<and> eventof a = e \<and> domevt\<^sub>a (gets P) e = domain a) \<or> 
-        (\<exists>c k. actk a = Cmd c\<sharp>k \<and> eventof a = getx P k \<and> domevt\<^sub>a (gets P) (eventof a) = domain a))} "
-    by (simp add: exec_step\<^sub>a_def) 
-qed
 
 subsection \<open>Rely-guarantee Proof of programs\<close>
 
