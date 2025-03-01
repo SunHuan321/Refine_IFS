@@ -53,6 +53,8 @@ record State\<^sub>c = status\<^sub>c :: "Auc_Status"
                 lock\<^sub>c :: "Core option"
                 max_bid\<^sub>c :: "Auc_Id \<times> Auc_Qt"
                 log_bid\<^sub>c :: "(Auc_Id \<times> Auc_Qt) list"
+                obs_st\<^sub>c :: "Auc_Status"
+                obs_max\<^sub>c :: "Auc_Id \<times> Auc_Qt"
                 obs_log\<^sub>c :: "(Auc_Id \<times> Auc_Qt) list"
                 res\<^sub>c :: "Res"
                 
@@ -67,6 +69,7 @@ definition Start_Auction\<^sub>c :: "Auc_Qt \<Rightarrow> (EventLabel, Core, Sta
         \<acute>res\<^sub>c := UnSuccess ;;
         \<acute>lock\<^sub>c := None ;;
         \<acute>status\<^sub>c := READY ;;
+        \<acute>obs_st\<^sub>c := READY ;;
         \<acute>reserve\<^sub>c := qt
       END
     END"
@@ -74,12 +77,15 @@ definition Start_Auction\<^sub>c :: "Auc_Qt \<Rightarrow> (EventLabel, Core, Sta
 definition Close_Auction\<^sub>c :: "(EventLabel, Core, State\<^sub>c, Prog\<^sub>c) event" 
   where "Close_Auction\<^sub>c \<equiv> 
     EVENT Close_AuctionE \<rhd> Server_CPU 
-    WHERE \<acute>status\<^sub>c = RUNNING
+    WHERE \<acute>status\<^sub>c \<noteq> CLOSED
     THEN  
       AWAIT \<acute>lock\<^sub>c = None THEN 
         \<acute>lock\<^sub>c := Some Server_CPU 
-      END ;;    
-      \<acute>status\<^sub>c := CLOSED
+      END ;;
+      ATOMIC    
+        \<acute>status\<^sub>c := CLOSED ;;
+        \<acute>obs_st\<^sub>c := CLOSED
+      END
     END"
 
 definition Publish_Res\<^sub>c :: "(EventLabel, Core, State\<^sub>c, Prog\<^sub>c) event" 
@@ -110,14 +116,16 @@ definition Register_Bid\<^sub>c :: "Auc_Id \<Rightarrow> Auc_Qt \<Rightarrow> (E
          \<acute>status\<^sub>c := RUNNING
       ELSE
          \<acute>log_bid\<^sub>c := \<acute>log_bid\<^sub>c @ [(uid, qt)] ;;
-          IF qt > snd \<acute>max_bid\<^sub>c
+          IF snd \<acute>max_bid\<^sub>c < qt
           THEN
              \<acute>max_bid\<^sub>c := (uid, qt)
           FI
       FI ;;
       ATOMIC
         \<acute>lock\<^sub>c := None ;;
-        \<acute>obs_log\<^sub>c := \<acute>log_bid\<^sub>c 
+        \<acute>obs_log\<^sub>c := \<acute>log_bid\<^sub>c ;;
+        \<acute>obs_max\<^sub>c := \<acute>max_bid\<^sub>c ;;
+        \<acute>obs_st\<^sub>c := \<acute>status\<^sub>c
       END
      END"
 
@@ -128,7 +136,7 @@ primrec Auction_Spec\<^sub>c :: "(EventLabel, Core, State\<^sub>c, Prog\<^sub>c)
 
 abbreviation s0\<^sub>c :: State\<^sub>c
   where "s0\<^sub>c \<equiv> \<lparr>status\<^sub>c = CLOSED, reserve\<^sub>c = 0, lock\<^sub>c = Some Server_CPU,  max_bid\<^sub>c = (0, 0), 
-                log_bid\<^sub>c = [(0, 0)], obs_log\<^sub>c = [(0, 0)], res\<^sub>c = UnSuccess\<rparr>"
+  log_bid\<^sub>c = [(0, 0)], obs_st\<^sub>c = CLOSED, obs_max\<^sub>c = (0,0), obs_log\<^sub>c = [(0, 0)], res\<^sub>c = UnSuccess\<rparr>"
 consts x0\<^sub>c :: "(EventLabel, Core, State\<^sub>c, Prog\<^sub>c) x"
 
 abbreviation C0\<^sub>c :: "(EventLabel, Core, State\<^sub>c, Prog\<^sub>c) pesconf"
@@ -151,9 +159,8 @@ definition exec_step\<^sub>c :: "SIMP_Env\<^sub>c \<Rightarrow> (EventLabel, Cor
                          \<and> eventof a = (getx P) k \<and> domevt\<^sub>c (gets P) (eventof a) = domain a))}"
 
 definition state_obs_server\<^sub>c :: "State\<^sub>c \<Rightarrow> State\<^sub>c"
-  where "state_obs_server\<^sub>c s \<equiv> s0\<^sub>c\<lparr>status\<^sub>c := status\<^sub>c s, 
-                                  reserve\<^sub>c := reserve\<^sub>c s,
-                                  obs_log\<^sub>c := obs_log\<^sub>c s\<rparr>"
+  where "state_obs_server\<^sub>c s \<equiv> s0\<^sub>c\<lparr>obs_st\<^sub>c := obs_st\<^sub>c s, obs_max\<^sub>c := obs_max\<^sub>c s, 
+                                  obs_log\<^sub>c := obs_log\<^sub>c s, reserve\<^sub>c := reserve\<^sub>c s\<rparr>"
 
 definition state_obs_user\<^sub>c :: "State\<^sub>c \<Rightarrow> State\<^sub>c"
   where "state_obs_user\<^sub>c s  \<equiv> s0\<^sub>c\<lparr>res\<^sub>c := res\<^sub>c s\<rparr>"
@@ -219,9 +226,11 @@ definition Start_Auction\<^sub>a :: "Auc_Qt \<Rightarrow> (EventLabel, Core, Sta
 definition Close_Auction\<^sub>a :: "(EventLabel, Core, State\<^sub>a, Prog\<^sub>a) event" 
   where "Close_Auction\<^sub>a \<equiv> 
     EVENT Close_AuctionE \<rhd> Server_CPU 
-    WHERE \<acute>status\<^sub>a = RUNNING
-    THEN      
-      \<acute>status\<^sub>a := CLOSED
+    WHERE \<acute>status\<^sub>a \<noteq> CLOSED
+    THEN 
+      ATOMIC    
+        \<acute>status\<^sub>a := CLOSED
+      END
     END"
 
 definition Publish_Res\<^sub>a :: "(EventLabel, Core, State\<^sub>a, Prog\<^sub>a) event" 
@@ -233,6 +242,8 @@ definition Publish_Res\<^sub>a :: "(EventLabel, Core, State\<^sub>a, Prog\<^sub>
         IF snd \<acute>max_bid\<^sub>a > \<acute>reserve\<^sub>a
         THEN
           \<acute>res\<^sub>a := Success \<acute>max_bid\<^sub>a
+        ELSE
+          \<acute>res\<^sub>a := UnSuccess
         FI
       END
     END"
@@ -287,9 +298,8 @@ definition exec_step\<^sub>a :: "SIMP_Env\<^sub>a \<Rightarrow> (EventLabel, Cor
                          \<and> eventof a = (getx P) k \<and> domevt\<^sub>a (gets P) (eventof a) = domain a))}"
 
 definition state_obs_server\<^sub>a :: "State\<^sub>a \<Rightarrow> State\<^sub>a"
-  where "state_obs_server\<^sub>a s \<equiv> s0\<^sub>a\<lparr>status\<^sub>a := status\<^sub>a s, 
-                                  reserve\<^sub>a := reserve\<^sub>a s,
-                                  log_bid\<^sub>a := log_bid\<^sub>a s\<rparr>"
+  where "state_obs_server\<^sub>a s \<equiv> s0\<^sub>a\<lparr>status\<^sub>a := status\<^sub>a s, max_bid\<^sub>a := max_bid\<^sub>a s,
+                                  log_bid\<^sub>a := log_bid\<^sub>a s, reserve\<^sub>a := reserve\<^sub>a s\<rparr>"
 
 definition state_obs_user\<^sub>a :: "State\<^sub>a \<Rightarrow> State\<^sub>a"
   where "state_obs_user\<^sub>a s  \<equiv> s0\<^sub>a\<lparr>res\<^sub>a := res\<^sub>a s\<rparr>"
@@ -394,74 +404,13 @@ lemma is_max_add_not_max: "\<lbrakk>is_max (muid, mqt) xs; qt \<le> mqt\<rbrakk>
 lemma is_max_add_max: "\<lbrakk>is_max (muid, mqt) xs; qt > mqt\<rbrakk> \<Longrightarrow> is_max (uid, qt) (xs @ [(uid, qt)])"
   using first_max_add_max is_max_def by blast
 
-
-(*
-primrec is_max :: "(Auc_Id \<times> Auc_Qt) \<Rightarrow> (Auc_Id \<times> Auc_Qt) list \<Rightarrow> bool"
-  where "is_max a [] = False"
-  | "is_max a (x # xs) = (if snd x > snd a then False 
-     else if x = a \<and> (\<forall>y\<in>set xs. snd y \<le> snd a) then True 
-     else if snd x = snd a then False 
-     else is_max a xs)"
-
-lemma is_max_implies: "is_max (uid, qt) xs \<Longrightarrow> \<forall>y\<in>set xs. snd y \<le> qt"
-  apply (induct xs, simp)
-  by (metis is_max.simps(2) leI set_ConsD snd_conv)
-
-
-lemma is_max_add_not_max: "\<lbrakk>is_max (muid, mqt) xs; qt \<le> mqt\<rbrakk> \<Longrightarrow> is_max (muid, mqt) (xs @ [(uid, qt)])"
-proof(induct xs)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons a xs)
-  then show ?case
- 
-subsection \<open>Simulation Relation\<close>
- proof(cases "a = (muid, mqt)")
-    case True
-    then have "\<forall>y\<in>set xs. snd y \<le> mqt"
-      by (metis Cons.prems(1) is_max.simps(2) snd_conv)
-    then have "\<forall>y\<in>set (xs @ [(uid, qt)]). snd y \<le> mqt"
-      by (simp add: Cons.prems(2))
-    then show ?thesis
-      by (simp add: True)
-  next
-    case False
-    then have "is_max (muid, mqt) xs"
-      by (meson Cons.prems(1) is_max.simps(2))
-    then have "is_max (muid, mqt) (xs @ [(uid, qt)])"
-      by (simp add: Cons.hyps Cons.prems(2))
-    then show ?thesis
-      using Cons.prems(1) False by auto
-  qed
-qed
-
-lemma is_max_add_aux: "\<forall>y\<in>set xs. snd y < qt \<Longrightarrow> is_max (uid, qt) (xs @ [(uid, qt)])"
-proof(induct xs)
-  case Nil
-  then show ?case by simp
-next
-  case (Cons a xs)
-  have a0: "snd a < qt"
-    by (simp add: Cons.prems)
-  then have a1: "a \<noteq> (uid, qt)"
-    by force
-  have a2: "is_max (uid, qt) (xs @ [(uid, qt)])"
-    by (simp add: Cons.hyps Cons.prems)
-  with a0 a1 show ?case
-    by simp
-qed
-
-lemma is_max_add_max: "\<lbrakk>is_max (muid, mqt) xs; qt > mqt\<rbrakk> \<Longrightarrow> is_max (uid, qt) (xs @ [(uid, qt)])"
-  by (meson is_max_add_aux is_max_implies leD leI order_trans)
-*)
-
-
 definition state_inv :: " (State\<^sub>c \<times> State\<^sub>a) set" 
-  where "state_inv = {(s\<^sub>c, s\<^sub>a). status\<^sub>c s\<^sub>c = status\<^sub>a s\<^sub>a \<and> reserve\<^sub>c s\<^sub>c = reserve\<^sub>a s\<^sub>a \<and> res\<^sub>c s\<^sub>c = res\<^sub>a s\<^sub>a
-         \<and> obs_log\<^sub>c s\<^sub>c = log_bid\<^sub>a s\<^sub>a \<and> is_max (max_bid\<^sub>a s\<^sub>a) (log_bid\<^sub>a s\<^sub>a) \<and> 
+  where "state_inv = {(s\<^sub>c, s\<^sub>a). reserve\<^sub>c s\<^sub>c = reserve\<^sub>a s\<^sub>a \<and> res\<^sub>c s\<^sub>c = res\<^sub>a s\<^sub>a
+         \<and> obs_st\<^sub>c s\<^sub>c = status\<^sub>a s\<^sub>a \<and> obs_log\<^sub>c s\<^sub>c = log_bid\<^sub>a s\<^sub>a \<and> obs_max\<^sub>c s\<^sub>c = max_bid\<^sub>a s\<^sub>a \<and> 
+         is_max (obs_max\<^sub>c s\<^sub>c) (obs_log\<^sub>c s\<^sub>c) \<and> is_max (max_bid\<^sub>a s\<^sub>a) (log_bid\<^sub>a s\<^sub>a) \<and> 
+         ((status\<^sub>c s\<^sub>c \<noteq> CLOSED) = (status\<^sub>a s\<^sub>a \<noteq> CLOSED)) \<and>
          ((lock\<^sub>c s\<^sub>c = None \<or> lock\<^sub>c s\<^sub>c = Some Server_CPU) \<longrightarrow> 
-         (obs_log\<^sub>c s\<^sub>c = log_bid\<^sub>c s\<^sub>c \<and> max_bid\<^sub>c s\<^sub>c = max_bid\<^sub>a s\<^sub>a \<and> is_max (max_bid\<^sub>c s\<^sub>c) (log_bid\<^sub>c s\<^sub>c))) \<and>
+         (obs_st\<^sub>c s\<^sub>c = status\<^sub>c s\<^sub>c \<and> obs_log\<^sub>c s\<^sub>c = log_bid\<^sub>c s\<^sub>c \<and> obs_max\<^sub>c s\<^sub>c = max_bid\<^sub>c s\<^sub>c)) \<and>
          (status\<^sub>c s\<^sub>c = CLOSED \<longrightarrow> lock\<^sub>c s\<^sub>c = Some Server_CPU) \<and> (res\<^sub>c s\<^sub>c = UnSuccess \<or> 
          (\<exists>r. res\<^sub>c s\<^sub>c = Success r \<and> is_max r (log_bid\<^sub>c s\<^sub>c) \<and> snd r > reserve\<^sub>c s\<^sub>c \<and> status\<^sub>c s\<^sub>c = CLOSED))}"
 
@@ -481,16 +430,19 @@ lemma ev_map_start: "ev_map (Start_Auction\<^sub>c uid) = Start_Auction\<^sub>a 
 lemma ev_map_close: "ev_map Close_Auction\<^sub>c = Close_Auction\<^sub>a"
   by (simp add: ev_map_def get_evt_label_def label_def Close_Auction\<^sub>c_def)
 
+lemma ev_map_publish: "ev_map Publish_Res\<^sub>c = Publish_Res\<^sub>a"
+  by (simp add: ev_map_def get_evt_label_def label_def Publish_Res\<^sub>c_def)
+
 lemma ev_map_register: "ev_map (Register_Bid\<^sub>c uid qt) = Register_Bid\<^sub>a uid qt"
   by (simp add: ev_map_def get_evt_label_def label_def Register_Bid\<^sub>c_def)
 
 definition start_map :: "Auc_Id \<Rightarrow> State\<^sub>c com \<rightharpoonup> State\<^sub>a com"
   where "start_map qt = 
-  [ATOMIC \<acute>res\<^sub>c := UnSuccess ;; \<acute>lock\<^sub>c := None ;;\<acute>status\<^sub>c := READY ;; \<acute>reserve\<^sub>c := qt END \<mapsto> 
+ [ATOMIC \<acute>res\<^sub>c := UnSuccess ;; \<acute>lock\<^sub>c := None ;; \<acute>status\<^sub>c := READY ;; \<acute>obs_st\<^sub>c := READY ;; \<acute>reserve\<^sub>c := qt END \<mapsto> 
   ATOMIC \<acute>res\<^sub>a := UnSuccess ;; \<acute>status\<^sub>a := READY ;; \<acute>reserve\<^sub>a := qt END]"
 
 definition close_map :: "State\<^sub>c com \<rightharpoonup> State\<^sub>a com"
-  where "close_map = [\<acute>status\<^sub>c := CLOSED \<mapsto> \<acute>status\<^sub>a := CLOSED]"
+  where "close_map = [ATOMIC \<acute>status\<^sub>c := CLOSED ;; \<acute>obs_st\<^sub>c := CLOSED END \<mapsto> ATOMIC \<acute>status\<^sub>a := CLOSED END]"
 
 definition publish_map :: "State\<^sub>c com \<rightharpoonup> State\<^sub>a com"
   where "publish_map = [\<acute>res\<^sub>c := Success \<acute>max_bid\<^sub>c  \<mapsto>
@@ -499,7 +451,8 @@ definition publish_map :: "State\<^sub>c com \<rightharpoonup> State\<^sub>a com
          ATOMIC IF snd \<acute>max_bid\<^sub>a > \<acute>reserve\<^sub>a THEN \<acute>res\<^sub>a := Success \<acute>max_bid\<^sub>a ELSE \<acute>res\<^sub>a := UnSuccess FI END]"
 
 definition register_map :: "Auc_Id \<Rightarrow> Auc_Qt \<Rightarrow> State\<^sub>c com \<rightharpoonup> State\<^sub>a com"
-  where "register_map uid qt = [ATOMIC \<acute>lock\<^sub>c := None ;; \<acute>obs_log\<^sub>c := \<acute>log_bid\<^sub>c END \<mapsto> 
+  where "register_map uid qt = [ATOMIC \<acute>lock\<^sub>c := None ;; \<acute>obs_log\<^sub>c := \<acute>log_bid\<^sub>c ;;
+        \<acute>obs_max\<^sub>c := \<acute>max_bid\<^sub>c ;; \<acute>obs_st\<^sub>c := \<acute>status\<^sub>c END \<mapsto> 
         ATOMIC
         IF \<acute>status\<^sub>a = READY
         THEN
@@ -558,37 +511,59 @@ lemma Auction_sim_state_ifs : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> state_inv; 
   apply (simp add: state_inv_def, case_tac d)
     apply (simp add: state_equiv\<^sub>a_def state_equiv\<^sub>c_def state_obs_user\<^sub>a_def state_obs_user\<^sub>c_def)
     apply (simp add:  state_equiv\<^sub>a_def state_equiv\<^sub>c_def state_obs_server\<^sub>a_def state_obs_server\<^sub>c_def)
+    apply auto[1]
    apply (simp add: state_equiv\<^sub>a_def state_equiv\<^sub>c_def state_obs_pulisher\<^sub>a_def state_obs_pulisher\<^sub>c_def)
   by (simp add: state_equiv\<^sub>a_def state_equiv\<^sub>c_def)
 
 
 subsection \<open>Rely-guarantee Proof of programs\<close>
 
-abbreviation "start\<^sub>c_rely \<equiv> \<lbrace>\<ordfeminine>status\<^sub>c = \<ordmasculine>status\<^sub>c\<rbrace>"
+(*
+abbreviation "start\<^sub>c_rely \<equiv> \<lbrace>\<ordfeminine>status\<^sub>c = \<ordmasculine>status\<^sub>c \<and> \<rbrace>"
 abbreviation "start\<^sub>c_guar \<equiv> \<lbrace>\<ordfeminine>max_bid\<^sub>c = \<ordmasculine>max_bid\<^sub>c \<and> \<ordfeminine>log_bid\<^sub>c = \<ordmasculine>log_bid\<^sub>c \<and>
                              \<ordfeminine>obs_log\<^sub>c = \<ordmasculine>obs_log\<^sub>c\<rbrace>"
 
-abbreviation "start\<^sub>a_rely \<equiv> \<lbrace>\<ordfeminine>status\<^sub>a = \<ordmasculine>status\<^sub>a\<rbrace>"
+abbreviation "start\<^sub>a_rely \<equiv> UNIV"
 abbreviation "start\<^sub>a_guar \<equiv> UNIV"
+*)
+
+abbreviation "server\<^sub>c_rely \<equiv> \<lbrace>\<ordfeminine>reserve\<^sub>c = \<ordmasculine>reserve\<^sub>c \<and> \<ordfeminine>res\<^sub>c = \<ordmasculine>res\<^sub>c \<and> 
+             (\<ordmasculine>status\<^sub>c = RUNNING \<longrightarrow> \<ordfeminine>status\<^sub>c = \<ordmasculine>status\<^sub>c) \<and>
+             (\<ordmasculine>lock\<^sub>c = Some Server_CPU \<longrightarrow> 
+             (\<ordfeminine>lock\<^sub>c = \<ordmasculine>lock\<^sub>c \<and> \<ordfeminine>status\<^sub>c = \<ordmasculine>status\<^sub>c \<and> \<ordfeminine>max_bid\<^sub>c = \<ordmasculine>max_bid\<^sub>c \<and> \<ordfeminine>log_bid\<^sub>c = \<ordmasculine>log_bid\<^sub>c \<and> 
+              \<ordfeminine>obs_st\<^sub>c = \<ordmasculine>obs_st\<^sub>c \<and> \<ordfeminine>obs_max\<^sub>c = \<ordmasculine>obs_max\<^sub>c \<and> \<ordfeminine>obs_log\<^sub>c = \<ordmasculine>obs_log\<^sub>c))\<rbrace>"
+
+abbreviation "server\<^sub>c_guar \<equiv> \<lbrace>\<ordmasculine>lock\<^sub>c \<noteq> Some Server_CPU \<longrightarrow> 
+              (\<ordfeminine>lock\<^sub>c = \<ordmasculine>lock\<^sub>c \<and> \<ordfeminine>status\<^sub>c = \<ordmasculine>status\<^sub>c \<and> \<ordfeminine>max_bid\<^sub>c = \<ordmasculine>max_bid\<^sub>c \<and> \<ordfeminine>log_bid\<^sub>c = \<ordmasculine>log_bid\<^sub>c \<and> 
+               \<ordfeminine>obs_st\<^sub>c = \<ordmasculine>obs_st\<^sub>c \<and> \<ordfeminine>obs_max\<^sub>c = \<ordmasculine>obs_max\<^sub>c \<and> \<ordfeminine>obs_log\<^sub>c = \<ordmasculine>obs_log\<^sub>c)\<rbrace> \<union> 
+              {(s, s'). (lock\<^sub>c s) = None \<and> s' = s\<lparr>lock\<^sub>c := Some Server_CPU\<rparr>}"
+
+abbreviation "server\<^sub>a_rely \<equiv> UNIV"
+abbreviation "server\<^sub>a_guar \<equiv> UNIV"
 
 abbreviation "start_pre \<equiv> state_inv \<inter> {(s\<^sub>c, s\<^sub>a). status\<^sub>c s\<^sub>c = CLOSED}"
 abbreviation "start_post \<equiv> state_inv"
 
 lemma start_awaitc : 
-  "\<turnstile> Await UNIV (\<acute>res\<^sub>c := UnSuccess ;; \<acute>lock\<^sub>c := None ;; \<acute>status\<^sub>c := READY ;; \<acute>reserve\<^sub>c := qt) sat 
-  [{s\<^sub>c}, Id, start\<^sub>c_guar, {s\<^sub>c \<lparr>res\<^sub>c := UnSuccess, lock\<^sub>c := None, status\<^sub>c := READY, reserve\<^sub>c := qt\<rparr>}]"
+  "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> state_inv; status\<^sub>c s\<^sub>c = CLOSED\<rbrakk> \<Longrightarrow> 
+  \<turnstile> Await UNIV (\<acute>res\<^sub>c := UnSuccess ;; \<acute>lock\<^sub>c := None ;; \<acute>status\<^sub>c := READY ;; \<acute>obs_st\<^sub>c := READY ;; 
+     \<acute>reserve\<^sub>c := qt) sat [{s\<^sub>c}, Id, server\<^sub>c_guar, 
+     {s\<^sub>c \<lparr>res\<^sub>c := UnSuccess, lock\<^sub>c := None, status\<^sub>c := READY, obs_st\<^sub>c := READY, reserve\<^sub>c := qt\<rparr>}]"
   apply (rule Await, simp_all add: stable_def, clarify)
   apply (case_tac "s\<^sub>c \<noteq> V")
    apply (rule Seq[where mid = "{}"])+
     apply (rule Basic, simp_all add: stable_def)+
-  apply (rule Seq[where mid = "{s\<^sub>c\<lparr>res\<^sub>c := UnSuccess, lock\<^sub>c := None, status\<^sub>c := READY\<rparr>}"])
-   apply (rule Seq[where mid = "{s\<^sub>c\<lparr>res\<^sub>c := UnSuccess, lock\<^sub>c := None\<rparr>}"])
-    apply (rule Seq[where mid = "{s\<^sub>c\<lparr>res\<^sub>c := UnSuccess\<rparr>}"])
-  by (rule Basic, simp_all add: stable_def)+
+  apply (rule Seq[where mid = "{s\<^sub>c\<lparr>res\<^sub>c := UnSuccess, lock\<^sub>c := None, status\<^sub>c := READY, obs_st\<^sub>c := READY\<rparr>}"])
+   apply (rule Seq[where mid = "{s\<^sub>c\<lparr>res\<^sub>c := UnSuccess, lock\<^sub>c := None, status\<^sub>c := READY\<rparr>}"])
+    apply (rule Seq[where mid = "{s\<^sub>c\<lparr>res\<^sub>c := UnSuccess, lock\<^sub>c := None\<rparr>}"])
+     apply (rule Seq[where mid = "{s\<^sub>c\<lparr>res\<^sub>c := UnSuccess\<rparr>}"])
+      apply (rule Basic, simp_all add: stable_def)+
+  by (simp add: state_inv_def)
 
 lemma start_awaita : 
-  "\<turnstile> Await UNIV (\<acute>res\<^sub>a := UnSuccess ;; \<acute>status\<^sub>a := READY ;; \<acute>reserve\<^sub>a := qt) sat 
-  [{s\<^sub>a}, Id, start\<^sub>a_guar, {s\<^sub>a \<lparr>res\<^sub>a := UnSuccess, status\<^sub>a := READY, reserve\<^sub>a := qt\<rparr>}]"
+  "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> state_inv; status\<^sub>c s\<^sub>c = CLOSED\<rbrakk> \<Longrightarrow> 
+  \<turnstile> Await UNIV (\<acute>res\<^sub>a := UnSuccess ;; \<acute>status\<^sub>a := READY ;; \<acute>reserve\<^sub>a := qt) sat 
+  [{s\<^sub>a}, Id, server\<^sub>a_guar, {s\<^sub>a \<lparr>res\<^sub>a := UnSuccess, status\<^sub>a := READY, reserve\<^sub>a := qt\<rparr>}]"
   apply (rule Await, simp_all add: stable_def, clarify)
   apply (case_tac "s\<^sub>a \<noteq> V")
    apply (rule Seq[where mid = "{}"])+
@@ -598,68 +573,94 @@ lemma start_awaita :
   by (rule Basic, simp_all add: stable_def)+
 
 lemma start_sim : "prog_sim_pre 
-      (Some (ATOMIC \<acute>res\<^sub>c := UnSuccess ;; \<acute>lock\<^sub>c := None ;; \<acute>status\<^sub>c := READY ;; \<acute>reserve\<^sub>c := qt END))
-      start\<^sub>c_rely start\<^sub>c_guar
+      (Some (ATOMIC \<acute>res\<^sub>c := UnSuccess ;; \<acute>lock\<^sub>c := None ;; \<acute>status\<^sub>c := READY ;; \<acute>obs_st\<^sub>c := READY ;; 
+      \<acute>reserve\<^sub>c := qt END))
+      server\<^sub>c_rely server\<^sub>c_guar
       state_inv (start_map qt) start_pre start_post
       (Some (ATOMIC \<acute>res\<^sub>a := UnSuccess ;; \<acute>status\<^sub>a := READY ;; \<acute>reserve\<^sub>a := qt END))
-      start\<^sub>a_rely start\<^sub>a_guar"
+      server\<^sub>a_rely server\<^sub>a_guar"
   apply (rule Await_Await_Sound, simp add: rel_eq_def, simp add: start_map_def)
       apply (simp add: stable_alpha, simp)
     apply (simp add: Stable_def related_transitions_def state_inv_def)
-      apply metis
+  apply (smt (verit, best))
    apply (rule not_stuck_Seq)+
      apply (simp add: not_stuck_Basic)+
   apply clarsimp
-  apply (rule_tac x = "{s\<^sub>c \<lparr>res\<^sub>c := UnSuccess, lock\<^sub>c := None, status\<^sub>c := READY, reserve\<^sub>c := qt\<rparr>}" in exI)
+  apply (rule_tac x = "{s\<^sub>c \<lparr>res\<^sub>c := UnSuccess, lock\<^sub>c := None, status\<^sub>c := READY, obs_st\<^sub>c := READY, reserve\<^sub>c := qt\<rparr>}" in exI)
   apply (rule conjI, simp add: start_awaitc)
   apply (rule_tac x = "{s\<^sub>a \<lparr>res\<^sub>a := UnSuccess, status\<^sub>a := READY, reserve\<^sub>a := qt\<rparr>}" in exI)
   apply (rule conjI, simp add: start_awaita)
   apply (simp add: state_inv_def)
   by auto
 
+(*
 abbreviation "close\<^sub>c_rely \<equiv> \<lbrace>\<ordfeminine>status\<^sub>c = \<ordmasculine>status\<^sub>c \<and> (\<ordmasculine>lock\<^sub>c = Some Server_CPU \<longrightarrow> \<ordfeminine>lock\<^sub>c  = \<ordmasculine>lock\<^sub>c)\<rbrace>"
 abbreviation "close\<^sub>c_guar \<equiv> \<lbrace>\<ordfeminine>max_bid\<^sub>c = \<ordmasculine>max_bid\<^sub>c \<and> \<ordfeminine>log_bid\<^sub>c = \<ordmasculine>log_bid\<^sub>c \<and> \<ordfeminine>obs_log\<^sub>c = \<ordmasculine>obs_log\<^sub>c\<rbrace>"
 
 abbreviation "close\<^sub>a_rely \<equiv> \<lbrace>\<ordfeminine>status\<^sub>a = \<ordmasculine>status\<^sub>a\<rbrace>"
 abbreviation "close\<^sub>a_guar \<equiv> UNIV"
+*)
 
-abbreviation "close_pre \<equiv> state_inv \<inter> {(s\<^sub>c, s\<^sub>a). status\<^sub>c s\<^sub>c = RUNNING}"
+abbreviation "close_pre \<equiv> state_inv"
 abbreviation "close_post \<equiv> state_inv"
 
-abbreviation "close_pre1 \<equiv> state_inv \<inter> {(s\<^sub>c, s\<^sub>a). status\<^sub>c s\<^sub>c = RUNNING \<and> lock\<^sub>c s\<^sub>c = Some Server_CPU}"
+abbreviation "close_pre1 \<equiv> state_inv \<inter> {(s\<^sub>c, s\<^sub>a). status\<^sub>c s\<^sub>c \<noteq> CLOSED \<and> lock\<^sub>c s\<^sub>c = Some Server_CPU}"
+
+lemma close_awaitc: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> close_post; status\<^sub>c s\<^sub>c \<noteq> CLOSED; lock\<^sub>c s\<^sub>c = Some Server_CPU \<rbrakk> \<Longrightarrow> 
+      \<turnstile> ATOMIC \<acute>status\<^sub>c := CLOSED;; \<acute>obs_st\<^sub>c := CLOSED END sat 
+        [{s\<^sub>c}, Id, server\<^sub>c_guar, {s\<^sub>c\<lparr>status\<^sub>c := CLOSED, obs_st\<^sub>c := CLOSED\<rparr>}]"
+  apply (rule Await, simp_all add: stable_def, clarsimp)
+  apply (case_tac "s\<^sub>c \<noteq> V", simp)
+   apply (rule Seq[where mid = "{}"])+
+    apply (rule Basic, simp_all add: stable_def)+
+  apply (rule Seq[where mid = "{s\<^sub>c\<lparr>status\<^sub>c := CLOSED\<rparr>}"])
+  by (rule Basic, simp_all add: stable_def)+
+
+lemma close_awaita: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> close_post; status\<^sub>c s\<^sub>c \<noteq> CLOSED;  lock\<^sub>c s\<^sub>c = Some Server_CPU \<rbrakk> \<Longrightarrow> 
+        \<turnstile> ATOMIC \<acute>status\<^sub>a := CLOSED END sat [{s\<^sub>a}, Id, server\<^sub>a_guar, {s\<^sub>a\<lparr>status\<^sub>a := CLOSED\<rparr>}]"
+  apply (rule Await, simp_all add: stable_def, clarsimp)
+  apply (case_tac "s\<^sub>a \<noteq> V")
+  by (rule Basic, simp_all add: stable_def)+
 
 lemma close_sim : "prog_sim_pre 
       (Some (AWAIT \<acute>lock\<^sub>c = None THEN \<acute>lock\<^sub>c := Some Server_CPU 
-      END ;; \<acute>status\<^sub>c := CLOSED))
-      close\<^sub>c_rely close\<^sub>c_guar
+      END ;; ATOMIC \<acute>status\<^sub>c := CLOSED ;; \<acute>obs_st\<^sub>c := CLOSED END))
+      server\<^sub>c_rely server\<^sub>c_guar
       state_inv close_map close_pre close_post
-      (Some (\<acute>status\<^sub>a := CLOSED))
-      close\<^sub>a_rely close\<^sub>a_guar"
+      (Some (ATOMIC \<acute>status\<^sub>a := CLOSED END))
+      server\<^sub>a_rely server\<^sub>a_guar"
   apply (rule_tac \<zeta>\<^sub>1 = close_map and \<gamma>\<^sub>1 = close_pre1 in Seq_Skip_Sound, simp, simp add: close_map_def)
    apply (rule Await_None_Sound, simp, simp add: close_map_def)
       apply (simp add: Stable_def related_transitions_def state_inv_def)
-      apply metis
+      apply (smt (verit, best))
      apply (simp add: Stable_def related_transitions_def state_inv_def)
-     apply metis
+     apply (smt (verit, best))
     apply simp
    apply clarsimp
    apply (rule Await, simp add: stable_def, simp add: stable_def, clarsimp)
-   apply (rule Basic, simp_all)
-     apply auto
-     apply (simp add: state_inv_def)
-     apply auto
-    apply (simp add: stable_def)
-    apply auto
-   apply (simp add: stable_def)
-  apply (rule Basic_Sound, simp, simp)
-     apply (simp add: Stable_def related_transitions_def state_inv_def)
-     apply metis
-    apply (simp add: Stable_def related_transitions_def state_inv_def)
-    apply metis
-   apply (simp add: close_map_def)
+   apply (rule Basic, simp, simp add: state_inv_def)
+     apply auto[1]
+    apply (simp add: stable_def state_inv_def)
+   apply (simp add: stable_def state_inv_def)
+    apply auto[1]
+   apply (simp add: stable_def state_inv_def)
+   apply auto[1]
+  apply (rule Await_Await_Sound, simp add: rel_eq_def)
+       apply (simp add: close_map_def, simp add: stable_alpha, simp)
+    apply (simp add: Stable_def state_inv_def related_transitions_def)
+    apply (smt (verit, best))
+   apply (simp add: not_stuck_Basic)
+  apply clarify
+  apply (rule_tac x = "{s\<^sub>c \<lparr>status\<^sub>c := CLOSED, obs_st\<^sub>c := CLOSED\<rparr>}" in exI)
+  apply (rule_tac x = "{s\<^sub>a \<lparr>status\<^sub>a := CLOSED \<rparr>}" in exI)
+  apply (rule conjI)
+  using close_awaitc apply auto[1]
+  apply (rule conjI)
+  using close_awaita apply auto[1]
   apply (simp add: state_inv_def)
   by auto
 
+(*
 abbreviation "publish\<^sub>c_rely \<equiv> \<lbrace>\<ordfeminine>res\<^sub>c = \<ordmasculine>res\<^sub>c \<and> \<ordfeminine>status\<^sub>c = \<ordmasculine>status\<^sub>c \<and> \<ordfeminine>reserve\<^sub>c = \<ordmasculine>reserve\<^sub>c \<and>
               (\<ordmasculine>lock\<^sub>c = Some Server_CPU \<longrightarrow> (\<ordfeminine>lock\<^sub>c = \<ordmasculine>lock\<^sub>c \<and> \<ordfeminine>max_bid\<^sub>c = \<ordmasculine>max_bid\<^sub>c \<and> 
               \<ordfeminine>log_bid\<^sub>c = \<ordmasculine>log_bid\<^sub>c \<and> \<ordfeminine>obs_log\<^sub>c = \<ordmasculine>obs_log\<^sub>c))\<rbrace>"
@@ -668,6 +669,7 @@ abbreviation "publish\<^sub>c_guar \<equiv> \<lbrace>\<ordfeminine>max_bid\<^sub
 
 abbreviation "publish\<^sub>a_rely \<equiv> \<lbrace>\<ordfeminine>status\<^sub>a = \<ordmasculine>status\<^sub>a \<and> \<ordfeminine>reserve\<^sub>a = \<ordmasculine>reserve\<^sub>a \<rbrace>"
 abbreviation "publish\<^sub>a_guar \<equiv> UNIV"
+*)
 
 abbreviation "publish_pre \<equiv> state_inv \<inter> {(s\<^sub>c, s\<^sub>a). status\<^sub>c s\<^sub>c = CLOSED}"
 abbreviation "publish_post \<equiv> state_inv"
@@ -675,17 +677,17 @@ abbreviation "publish_post \<equiv> state_inv"
 lemma publish_sim : "prog_sim_pre 
       (Some (IF snd \<acute>max_bid\<^sub>c > \<acute>reserve\<^sub>c THEN \<acute>res\<^sub>c := Success \<acute>max_bid\<^sub>c  ELSE \<acute>res\<^sub>c := UnSuccess
       FI))
-      publish\<^sub>c_rely publish\<^sub>c_guar
+      server\<^sub>c_rely server\<^sub>c_guar
       state_inv publish_map publish_pre publish_post
       (Some (ATOMIC IF snd \<acute>max_bid\<^sub>a > \<acute>reserve\<^sub>a THEN \<acute>res\<^sub>a := Success \<acute>max_bid\<^sub>a ELSE \<acute>res\<^sub>a := UnSuccess FI  END))
-      publish\<^sub>a_rely publish\<^sub>a_guar"
+      server\<^sub>a_rely server\<^sub>a_guar"
   apply (rule If_Comm_Branch_Sound, simp, simp add: publish_map_def, simp_all)
      apply (simp add: Stable_def related_transitions_def state_inv_def)
-     apply metis
+     apply (smt (verit, best))
     apply (rule Basic_Await_Sound)
            apply force
-          apply (simp add: Stable_def related_transitions_def state_inv_def, clarsimp)
-          apply metis
+          apply (simp add: Stable_def related_transitions_def state_inv_def)
+          apply (smt (verit, best))
          apply (simp add: publish_map_def, simp add: stable_alpha, simp)
       apply (rule not_stuck_If)
        apply (rule not_stuck_Basic)+
@@ -707,8 +709,8 @@ lemma publish_sim : "prog_sim_pre
     apply (simp add: stable_def)
    apply (rule Basic_Await_Sound)
   apply force
-         apply (simp add: Stable_def related_transitions_def state_inv_def, clarsimp)
-         apply metis
+         apply (simp add: Stable_def related_transitions_def state_inv_def)
+         apply (smt (verit, best))
         apply (simp add: publish_map_def, simp add: stable_alpha, simp)
      apply (rule not_stuck_If)
       apply (rule not_stuck_Basic)+
@@ -731,12 +733,15 @@ lemma publish_sim : "prog_sim_pre
   by auto
 
 abbreviation "register\<^sub>c_rely uid \<equiv> \<lbrace>\<ordmasculine>lock\<^sub>c = Some (User_CPU uid) \<longrightarrow> 
-              (\<ordfeminine>status\<^sub>c = \<ordmasculine>status\<^sub>c \<and> \<ordfeminine>lock\<^sub>c = \<ordmasculine>lock\<^sub>c \<and> \<ordfeminine>max_bid\<^sub>c = \<ordmasculine>max_bid\<^sub>c \<and> 
-              \<ordfeminine>log_bid\<^sub>c = \<ordmasculine>log_bid\<^sub>c \<and> \<ordfeminine>obs_log\<^sub>c = \<ordmasculine>obs_log\<^sub>c)\<rbrace>"
+              (\<ordfeminine>lock\<^sub>c = \<ordmasculine>lock\<^sub>c \<and> \<ordfeminine>status\<^sub>c = \<ordmasculine>status\<^sub>c \<and> \<ordfeminine>max_bid\<^sub>c = \<ordmasculine>max_bid\<^sub>c \<and> \<ordfeminine>log_bid\<^sub>c = \<ordmasculine>log_bid\<^sub>c \<and>
+               \<ordfeminine>obs_st\<^sub>c = \<ordmasculine>obs_st\<^sub>c \<and> \<ordfeminine>obs_max\<^sub>c = \<ordmasculine>obs_max\<^sub>c \<and> \<ordfeminine>obs_log\<^sub>c = \<ordmasculine>obs_log\<^sub>c)\<rbrace>"
 
-abbreviation "register\<^sub>c_guar uid \<equiv> \<lbrace>\<ordfeminine>res\<^sub>c = \<ordmasculine>res\<^sub>c \<and> \<ordfeminine>status\<^sub>c = \<ordmasculine>status\<^sub>c \<and> \<ordfeminine>reserve\<^sub>c = \<ordmasculine>reserve\<^sub>c \<and> 
+abbreviation "register\<^sub>c_guar uid \<equiv> \<lbrace>\<ordfeminine>res\<^sub>c = \<ordmasculine>res\<^sub>c \<and> \<ordfeminine>reserve\<^sub>c = \<ordmasculine>reserve\<^sub>c \<and> 
+              (\<ordmasculine>status\<^sub>c = RUNNING \<longrightarrow> \<ordfeminine>status\<^sub>c = \<ordmasculine>status\<^sub>c) \<and>
               (\<ordmasculine>lock\<^sub>c \<noteq> Some (User_CPU uid) \<longrightarrow> 
-              (\<ordfeminine>max_bid\<^sub>c = \<ordmasculine>max_bid\<^sub>c \<and> \<ordfeminine>log_bid\<^sub>c = \<ordmasculine>log_bid\<^sub>c \<and> \<ordfeminine>obs_log\<^sub>c = \<ordmasculine>obs_log\<^sub>c))\<rbrace>"
+              (\<ordfeminine>lock\<^sub>c = \<ordmasculine>lock\<^sub>c \<and> \<ordfeminine>status\<^sub>c = \<ordmasculine>status\<^sub>c \<and> \<ordfeminine>max_bid\<^sub>c = \<ordmasculine>max_bid\<^sub>c \<and> \<ordfeminine>log_bid\<^sub>c = \<ordmasculine>log_bid\<^sub>c \<and>
+               \<ordfeminine>obs_st\<^sub>c = \<ordmasculine>obs_st\<^sub>c \<and> \<ordfeminine>obs_max\<^sub>c = \<ordmasculine>obs_max\<^sub>c \<and> \<ordfeminine>obs_log\<^sub>c = \<ordmasculine>obs_log\<^sub>c))\<rbrace> \<union>
+              {(s, s'). (lock\<^sub>c s) = None \<and> s' = s \<lparr>lock\<^sub>c := Some (User_CPU uid)\<rparr>}"
 
 abbreviation "register\<^sub>a_rely \<equiv> UNIV"
 abbreviation "register\<^sub>a_guar \<equiv> UNIV"
@@ -744,14 +749,13 @@ abbreviation "register\<^sub>a_guar \<equiv> UNIV"
 abbreviation "register_pre \<equiv> state_inv"
 abbreviation "register_post \<equiv> state_inv"
 
-thm state_inv_def
-
 abbreviation "register_mid1 uid qt \<equiv> state_inv \<inter> {(s\<^sub>c, s\<^sub>a). lock\<^sub>c s\<^sub>c = Some (User_CPU uid) \<and> 
- obs_log\<^sub>c s\<^sub>c = log_bid\<^sub>a s\<^sub>a \<and> is_max (max_bid\<^sub>a s\<^sub>a) (log_bid\<^sub>a s\<^sub>a) \<and> is_max (max_bid\<^sub>c s\<^sub>c) (log_bid\<^sub>c s\<^sub>c)}"
+  (obs_st\<^sub>c s\<^sub>c = READY \<longrightarrow> (max_bid\<^sub>c s\<^sub>c = (uid, qt) \<and> log_bid\<^sub>c s\<^sub>c = [(uid, qt)] \<and> status\<^sub>c s\<^sub>c = RUNNING)) \<and> 
+  (obs_st\<^sub>c s\<^sub>c \<noteq> READY \<longrightarrow> (log_bid\<^sub>c s\<^sub>c = (obs_log\<^sub>c s\<^sub>c) @ [(uid, qt)] \<and> status\<^sub>c s\<^sub>c = obs_st\<^sub>c s\<^sub>c \<and> 
+  (qt > snd (obs_max\<^sub>c s\<^sub>c) \<longrightarrow>  max_bid\<^sub>c s\<^sub>c = (uid, qt)) \<and> (qt \<le> snd (obs_max\<^sub>c s\<^sub>c) \<longrightarrow>  max_bid\<^sub>c s\<^sub>c = obs_max\<^sub>c s\<^sub>c)))}"
 
 abbreviation "register_mid2 uid \<equiv> state_inv \<inter> {(s\<^sub>c, s\<^sub>a). lock\<^sub>c s\<^sub>c = Some (User_CPU uid) \<and> 
- obs_log\<^sub>c s\<^sub>c = log_bid\<^sub>c s\<^sub>c \<and> obs_log\<^sub>c s\<^sub>c = log_bid\<^sub>a s\<^sub>a \<and> is_max (max_bid\<^sub>a s\<^sub>a) (log_bid\<^sub>a s\<^sub>a) \<and> 
- is_max (max_bid\<^sub>c s\<^sub>c) (log_bid\<^sub>c s\<^sub>c)}"
+              obs_st\<^sub>c s\<^sub>c = status\<^sub>c s\<^sub>c \<and> obs_log\<^sub>c s\<^sub>c = log_bid\<^sub>c s\<^sub>c \<and> obs_max\<^sub>c s\<^sub>c = max_bid\<^sub>c s\<^sub>c}"
 
 lemma registera_not_stuck: "not_stuck UNIV (IF \<acute>status\<^sub>a = READY THEN
       \<acute>log_bid\<^sub>a := [(uid, qt)];; \<acute>max_bid\<^sub>a := (uid, qt) ;;\<acute>status\<^sub>a := RUNNING
@@ -771,13 +775,12 @@ lemma register_sim_none1: "prog_sim_pre
   apply (rule Await_None_Sound)
        apply simp+
   apply (simp add: stable_alpha)
-    apply (simp add: Stable_def state_inv_def related_transitions_def, clarsimp)
-  apply auto[1]
+    apply (simp add: Stable_def state_inv_def related_transitions_def)
+  apply (smt (verit, best))
    apply simp
   apply clarsimp
   apply (rule Await)
     apply (simp add: stable_def)+
-   apply auto[1]
   apply (clarsimp, rule Basic, clarsimp)
      apply (simp add: state_inv_def)
      apply auto[1]
@@ -786,12 +789,198 @@ lemma register_sim_none1: "prog_sim_pre
   apply (simp add: stable_def)
   by auto
 
+lemma register_sim_none2_branch1: "prog_sim_pre 
+      (Some (\<acute>max_bid\<^sub>c := (uid, qt);; \<acute>log_bid\<^sub>c := [(uid, qt)];; \<acute>status\<^sub>c := RUNNING))
+      (register\<^sub>c_rely uid) (register\<^sub>c_guar uid) state_inv Map.empty 
+      ((register_mid2 uid) \<inter> {(s\<^sub>c, s\<^sub>a). s\<^sub>c \<in> \<lbrace>\<acute>status\<^sub>c = READY\<rbrace>}) (register_mid1 uid qt)
+      None register\<^sub>a_rely register\<^sub>a_guar"
+  apply (rule_tac \<zeta>\<^sub>1 = Map.empty and \<gamma>\<^sub>1 = "state_inv \<inter> {(s\<^sub>c, s\<^sub>a). lock\<^sub>c s\<^sub>c = Some (User_CPU uid) 
+  \<and> obs_st\<^sub>c s\<^sub>c = READY \<and>  max_bid\<^sub>c s\<^sub>c = (uid, qt) \<and> log_bid\<^sub>c s\<^sub>c = [(uid, qt)]}" in Seq_Skip_Sound)
+     apply auto[1]
+    apply simp
+   apply (rule_tac \<zeta>\<^sub>1 = Map.empty and \<gamma>\<^sub>1 = "state_inv \<inter> {(s\<^sub>c, s\<^sub>a). lock\<^sub>c s\<^sub>c = Some (User_CPU uid)
+         \<and> obs_st\<^sub>c s\<^sub>c = READY \<and> max_bid\<^sub>c s\<^sub>c = (uid, qt)}" in Seq_Skip_Sound)
+      apply auto[1]
+     apply simp
+    apply (rule Basic_None_Sound)
+         apply auto
+      apply (simp add: Stable_def state_inv_def related_transitions_def)
+      apply (smt (verit, best))
+     apply (simp add: Stable_def state_inv_def related_transitions_def)
+     apply (smt (verit, best))
+    apply (simp add: state_inv_def)
+    apply auto[1]
+   apply (rule Basic_None_Sound, simp, simp)
+      apply (simp add: Stable_def state_inv_def related_transitions_def)
+      apply (smt (verit, best))
+     apply (simp add: Stable_def state_inv_def related_transitions_def)
+    apply (smt (verit, best))
+    apply (simp add: state_inv_def)
+    apply auto[1]
+   apply simp
+  apply (rule Basic_None_Sound, simp, simp)
+     apply (simp add: Stable_def state_inv_def related_transitions_def)
+  apply (smt (verit, best))
+    apply (simp add: Stable_def state_inv_def related_transitions_def)
+    apply (smt (verit, best))
+   apply (simp add: state_inv_def)
+  by auto
+
+lemma register_sim_none2_branch2: "prog_sim_pre 
+      (Some (\<acute>log_bid\<^sub>c := \<acute>log_bid\<^sub>c @ [(uid, qt)];; IF snd \<acute>max_bid\<^sub>c < qt THEN \<acute>max_bid\<^sub>c :=
+       (uid, qt) FI))
+      (register\<^sub>c_rely uid) (register\<^sub>c_guar uid) state_inv Map.empty 
+      ((register_mid2 uid) \<inter> {(s\<^sub>c, s\<^sub>a). s\<^sub>c \<notin> \<lbrace>\<acute>status\<^sub>c = READY\<rbrace>}) (register_mid1 uid qt)
+      None register\<^sub>a_rely register\<^sub>a_guar"
+  apply (rule_tac \<zeta>\<^sub>1 = Map.empty and \<gamma>\<^sub>1 = "state_inv \<inter> {(s\<^sub>c, s\<^sub>a). lock\<^sub>c s\<^sub>c = Some (User_CPU uid) \<and> 
+   obs_st\<^sub>c s\<^sub>c = status\<^sub>c s\<^sub>c  \<and> obs_max\<^sub>c s\<^sub>c = max_bid\<^sub>c s\<^sub>c \<and>
+   obs_st\<^sub>c s\<^sub>c \<noteq> READY \<and> log_bid\<^sub>c s\<^sub>c = (obs_log\<^sub>c s\<^sub>c) @ [(uid, qt)]}" in Seq_Skip_Sound)
+     apply auto[1]
+    apply simp
+   apply (rule Basic_None_Sound, simp)
+        apply auto[1]
+       apply simp
+      apply (simp add: Stable_def state_inv_def related_transitions_def)
+      apply (smt (verit, best))
+     apply (simp add: Stable_def state_inv_def related_transitions_def)
+     apply (smt (verit, best))
+    apply (simp add: state_inv_def)
+    apply auto[1]
+  apply simp
+  apply (rule If_Comm_Branch_Sound, simp_all)
+     apply (simp add: Stable_def state_inv_def related_transitions_def)
+     apply (smt (verit, best))
+    apply (rule Basic_None_Sound)
+         apply auto[1]
+        apply auto[1]
+       apply (simp add: Stable_def state_inv_def related_transitions_def)
+       apply (smt (verit, best))
+      apply (simp add: Stable_def state_inv_def related_transitions_def)
+      apply (smt (verit, best))
+     apply (simp add: state_inv_def, clarsimp)
+    apply auto[1]
+   apply (simp add: Skip_def, rule Basic_None_Sound)
+        apply auto
+   apply (simp add: Stable_def state_inv_def related_transitions_def)
+   apply (smt (verit, best))
+  apply (simp add: Stable_def state_inv_def related_transitions_def)
+  by (smt (verit, best))
+
 lemma register_sim_none2: "prog_sim_pre
       (Some (IF \<acute>status\<^sub>c = READY THEN \<acute>max_bid\<^sub>c := (uid, qt);; \<acute>log_bid\<^sub>c := [(uid, qt)];; \<acute>status\<^sub>c := RUNNING
        ELSE \<acute>log_bid\<^sub>c := \<acute>log_bid\<^sub>c @ [(uid, qt)];; IF snd \<acute>max_bid\<^sub>c < qt THEN \<acute>max_bid\<^sub>c := (uid, qt) FI
        FI))
-      (register\<^sub>c_rely uid) (register\<^sub>c_guar uid) state_inv Map.empty register_pre (register_mid1 uid qt)
+      (register\<^sub>c_rely uid) (register\<^sub>c_guar uid) state_inv Map.empty (register_mid2 uid) (register_mid1 uid qt)
       None register\<^sub>a_rely register\<^sub>a_guar"
+  apply (rule If_Comm_Branch_Sound, simp_all)
+  apply (simp add: Stable_def state_inv_def related_transitions_def)
+     apply (smt (verit, best))
+  using register_sim_none2_branch1 apply auto[1]
+  using register_sim_none2_branch2 apply auto[1]
+  by force
+
+lemma not_stuck_unlock: " not_stuck \<lbrace>True\<rbrace>
+     (IF \<acute>status\<^sub>a = READY THEN \<acute>log_bid\<^sub>a := [(uid, qt)];; \<acute>max_bid\<^sub>a := (uid, qt);; \<acute>status\<^sub>a := RUNNING
+      ELSE \<acute>log_bid\<^sub>a := \<acute>log_bid\<^sub>a @ [(uid, qt)];; IF snd \<acute>max_bid\<^sub>a < qt THEN \<acute>max_bid\<^sub>a := (uid, qt) FI FI)"
+   apply (rule not_stuck_If)
+    apply (rule not_stuck_Seq)+
+  apply (simp add: not_stuck_Basic)+
+   apply (rule not_stuck_Seq, simp add: not_stuck_Basic)
+  by (rule not_stuck_If, simp_all add: Skip_def not_stuck_Basic)
+
+lemma register_unlock_awaitc: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> register_post; lock\<^sub>c s\<^sub>c = Some (User_CPU uid);
+       obs_st\<^sub>c s\<^sub>c = READY \<longrightarrow> max_bid\<^sub>c s\<^sub>c = (uid, qt) \<and> log_bid\<^sub>c s\<^sub>c = [(uid, qt)] \<and> status\<^sub>c s\<^sub>c = RUNNING;
+       obs_st\<^sub>c s\<^sub>c \<noteq> READY \<longrightarrow> log_bid\<^sub>c s\<^sub>c = obs_log\<^sub>c s\<^sub>c @ [(uid, qt)] \<and>  status\<^sub>c s\<^sub>c = obs_st\<^sub>c s\<^sub>c \<and> 
+      (snd (obs_max\<^sub>c s\<^sub>c) < qt \<longrightarrow> max_bid\<^sub>c s\<^sub>c = (uid, qt)) \<and> (qt \<le> snd (obs_max\<^sub>c s\<^sub>c) \<longrightarrow> max_bid\<^sub>c s\<^sub>c = obs_max\<^sub>c s\<^sub>c)\<rbrakk> 
+       \<Longrightarrow> \<turnstile> ATOMIC \<acute>lock\<^sub>c := None;; \<acute>obs_log\<^sub>c := \<acute>log_bid\<^sub>c;; \<acute>obs_max\<^sub>c := \<acute>max_bid\<^sub>c;;
+      \<acute>obs_st\<^sub>c := \<acute>status\<^sub>c END sat [{s\<^sub>c}, Id, register\<^sub>c_guar uid, 
+      {s\<^sub>c\<lparr>lock\<^sub>c := None, obs_log\<^sub>c := log_bid\<^sub>c s\<^sub>c, obs_max\<^sub>c := max_bid\<^sub>c s\<^sub>c, obs_st\<^sub>c := status\<^sub>c s\<^sub>c\<rparr>}]"
+  apply (rule Await, simp add: stable_def, simp add: stable_def, clarify)
+  apply (case_tac "s\<^sub>c \<noteq> V", simp)
+   apply (rule Seq[where mid = "{}"])+
+      apply (rule Basic, simp_all add: stable_def)+
+   apply (smt (verit, best))
+  apply (rule Seq[where mid = "{s\<^sub>c\<lparr>lock\<^sub>c := None, obs_log\<^sub>c := log_bid\<^sub>c s\<^sub>c, obs_max\<^sub>c := max_bid\<^sub>c s\<^sub>c\<rparr>}"])
+   apply (rule Seq[where mid = "{s\<^sub>c\<lparr>lock\<^sub>c := None, obs_log\<^sub>c := log_bid\<^sub>c s\<^sub>c\<rparr>}"])
+    apply (rule Seq[where mid = "{s\<^sub>c\<lparr>lock\<^sub>c := None\<rparr>}"])
+  by (rule Basic, simp_all add: stable_def)+
+
+abbreviation "register_posta uid qt s\<^sub>a \<equiv> {s. status\<^sub>a s\<^sub>a = READY \<and> s = s\<^sub>a\<lparr>log_bid\<^sub>a := [(uid, qt)], max_bid\<^sub>a := (uid, qt), status\<^sub>a := RUNNING\<rparr>} \<union> 
+                       {s. status\<^sub>a s\<^sub>a \<noteq> READY \<and> snd (max_bid\<^sub>a s\<^sub>a) < qt \<and> 
+                        s = s\<^sub>a\<lparr>log_bid\<^sub>a := (log_bid\<^sub>a s\<^sub>a) @ [(uid, qt)], max_bid\<^sub>a := (uid, qt)\<rparr>} \<union> 
+                       {s. status\<^sub>a s\<^sub>a \<noteq> READY \<and> snd (max_bid\<^sub>a s\<^sub>a) \<ge> qt \<and> 
+                        s = s\<^sub>a\<lparr>log_bid\<^sub>a := (log_bid\<^sub>a s\<^sub>a) @ [(uid, qt)]\<rparr>}"
+
+lemma register_unlock_awaita: "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> register_post; lock\<^sub>c s\<^sub>c = Some (User_CPU uid);
+       obs_st\<^sub>c s\<^sub>c = READY \<longrightarrow> max_bid\<^sub>c s\<^sub>c = (uid, qt) \<and> log_bid\<^sub>c s\<^sub>c = [(uid, qt)] \<and> status\<^sub>c s\<^sub>c = RUNNING;
+       obs_st\<^sub>c s\<^sub>c \<noteq> READY \<longrightarrow> log_bid\<^sub>c s\<^sub>c = obs_log\<^sub>c s\<^sub>c @ [(uid, qt)] \<and>  status\<^sub>c s\<^sub>c = obs_st\<^sub>c s\<^sub>c \<and> 
+      (snd (obs_max\<^sub>c s\<^sub>c) < qt \<longrightarrow> max_bid\<^sub>c s\<^sub>c = (uid, qt)) \<and> (qt \<le> snd (obs_max\<^sub>c s\<^sub>c) \<longrightarrow> max_bid\<^sub>c s\<^sub>c = obs_max\<^sub>c s\<^sub>c)\<rbrakk>
+       \<Longrightarrow> \<turnstile> ATOMIC IF \<acute>status\<^sub>a = READY THEN \<acute>log_bid\<^sub>a := [(uid, qt)];; \<acute>max_bid\<^sub>a := (uid, qt);; \<acute>status\<^sub>a := RUNNING
+                 ELSE \<acute>log_bid\<^sub>a := \<acute>log_bid\<^sub>a @ [(uid, qt)];; IF snd \<acute>max_bid\<^sub>a < qt THEN \<acute>max_bid\<^sub>a := (uid, qt) FI
+                 FI END  sat [{s\<^sub>a}, Id, register\<^sub>a_guar, register_posta uid qt s\<^sub>a]"
+  apply (rule Await, simp add: stable_def, simp add: stable_def, clarify)
+  apply (case_tac "s\<^sub>a \<noteq> V", simp)
+  apply (rule Cond, simp add: stable_def)
+     apply (rule Seq[where mid = "{}"])+
+       apply (rule Basic, simp_all add: stable_def)+
+   apply (rule Seq[where mid = "{}"])
+    apply (rule Basic, simp_all add: stable_def)
+   apply (rule Cond, simp add: stable_def)
+     apply (rule Basic, simp_all add: stable_def)
+   apply (simp add: Skip_def, rule Basic, simp_all add: stable_def)
+  apply (rule Cond, simp add: stable_def)
+    apply (rule Seq[where mid = "{s. status\<^sub>a s\<^sub>a = READY \<and> s = s\<^sub>a\<lparr>log_bid\<^sub>a := [(uid, qt)], max_bid\<^sub>a := (uid, qt)\<rparr>}"])
+     apply (rule Seq[where mid = "{s. status\<^sub>a s\<^sub>a = READY \<and> s = s\<^sub>a\<lparr>log_bid\<^sub>a := [(uid, qt)]\<rparr>}"])
+      apply (rule Basic, simp_all add: stable_def)+
+     apply auto[1]
+    apply (rule Basic, simp_all add: stable_def)
+    apply auto[1]
+   apply (rule Basic, simp_all add: stable_def)
+   apply auto[1]
+  apply (rule Seq[where mid = "{s. status\<^sub>a s\<^sub>a \<noteq> READY \<and> s = s\<^sub>a\<lparr>log_bid\<^sub>a := (log_bid\<^sub>a s\<^sub>a) @ [(uid, qt)]\<rparr>}"])
+   apply (rule Basic, simp_all add: stable_def)
+   apply auto[1]
+  apply (rule Cond, simp add: stable_def)
+    apply (rule Basic, simp_all add: stable_def)
+   apply auto[1]
+  apply (simp add: Skip_def, rule Basic, simp_all add: stable_def)
+  by auto
+
+lemma register_sim_unlock: "prog_sim_pre
+      (Some (ATOMIC \<acute>lock\<^sub>c := None;; \<acute>obs_log\<^sub>c := \<acute>log_bid\<^sub>c;; \<acute>obs_max\<^sub>c := \<acute>max_bid\<^sub>c;; \<acute>obs_st\<^sub>c := \<acute>status\<^sub>c END))
+      (register\<^sub>c_rely uid) (register\<^sub>c_guar uid) state_inv (register_map uid qt) (register_mid1 uid qt) state_inv
+      (Some (ATOMIC
+        IF \<acute>status\<^sub>a = READY
+        THEN
+         \<acute>log_bid\<^sub>a := [(uid, qt)];;
+         \<acute>max_bid\<^sub>a := (uid, qt) ;;
+         \<acute>status\<^sub>a := RUNNING
+        ELSE
+         \<acute>log_bid\<^sub>a := \<acute>log_bid\<^sub>a @ [(uid, qt)] ;;
+          IF qt > snd \<acute>max_bid\<^sub>a
+          THEN
+             \<acute>max_bid\<^sub>a := (uid, qt)
+          FI
+        FI
+      END))
+      register\<^sub>a_rely register\<^sub>a_guar"
+  apply (rule Await_Await_Sound, simp add: rel_eq_def, simp add: register_map_def)
+      apply (simp add: stable_alpha, simp)
+    apply (simp add: Stable_def state_inv_def related_transitions_def)
+    apply (smt (verit, best))
+   apply (simp add: registera_not_stuck, clarify)
+  apply (rule_tac x = "{s\<^sub>c\<lparr>lock\<^sub>c := None, obs_log\<^sub>c := log_bid\<^sub>c s\<^sub>c, obs_max\<^sub>c := max_bid\<^sub>c s\<^sub>c, 
+         obs_st\<^sub>c := status\<^sub>c s\<^sub>c\<rparr>}" in exI)
+  apply (rule_tac x = "register_posta uid qt s\<^sub>a" in exI)
+  apply (rule conjI)
+  using register_unlock_awaitc apply auto[1]
+  apply (rule conjI)
+  using register_unlock_awaita apply auto[1]
+  apply (simp add: state_inv_def, clarsimp)
+  apply (intro conjI)
+  using is_max_def apply force
+   apply (metis is_max_add_max prod.collapse)
+  by (metis is_max_add_not_max prod.collapse)
 
 lemma register_sim : "prog_sim_pre 
       (Some (AWAIT \<acute>lock\<^sub>c = None THEN 
@@ -811,7 +1000,9 @@ lemma register_sim : "prog_sim_pre
       FI ;;
       ATOMIC
         \<acute>lock\<^sub>c := None ;;
-        \<acute>obs_log\<^sub>c := \<acute>log_bid\<^sub>c 
+        \<acute>obs_log\<^sub>c := \<acute>log_bid\<^sub>c ;;
+        \<acute>obs_max\<^sub>c := \<acute>max_bid\<^sub>c ;;
+        \<acute>obs_st\<^sub>c := \<acute>status\<^sub>c
       END))
       (register\<^sub>c_rely uid) (register\<^sub>c_guar uid)
       state_inv (register_map uid qt) register_pre register_post
@@ -831,11 +1022,153 @@ lemma register_sim : "prog_sim_pre
       END))
       register\<^sub>a_rely register\<^sub>a_guar"
   apply (rule_tac \<zeta>\<^sub>1 = Map.empty and \<gamma>\<^sub>1 = "register_mid1 uid qt" in Seq_Skip_Sound)
-     apply (simp add: register_map_def)+
+     apply (simp add: register_map_def, simp add: register_map_def)
    apply (rule_tac \<zeta>\<^sub>1 = Map.empty and \<gamma>\<^sub>1 = "register_mid2 uid" in Seq_Skip_Sound)
       apply simp+
   using register_sim_none1 apply auto[1]
+  using register_sim_none2 apply auto[1]
+  using register_sim_unlock[of uid qt] by auto
+
+subsection \<open>Rely-guarantee Proof for event systems\<close>
+
+lemma init_sat_inv: "(s0\<^sub>c, s0\<^sub>a) \<in> state_inv"
+  by (simp add: state_inv_def is_max_def)
 
 
+primrec evtsys_rely\<^sub>c :: "Core \<Rightarrow> (State\<^sub>c \<times> State\<^sub>c) set"
+  where "evtsys_rely\<^sub>c (User_CPU uid) = (register\<^sub>c_rely uid)"
+  | "evtsys_rely\<^sub>c Server_CPU = server\<^sub>c_rely"
+
+primrec evtsys_guar\<^sub>c :: "Core \<Rightarrow> (State\<^sub>c \<times> State\<^sub>c) set"
+  where "evtsys_guar\<^sub>c (User_CPU uid) = (register\<^sub>c_guar uid)"
+  | "evtsys_guar\<^sub>c Server_CPU = server\<^sub>c_guar"
+
+abbreviation "evtsys_rely\<^sub>a k \<equiv> UNIV"
+abbreviation "evtsys_guar\<^sub>a k \<equiv> UNIV"
+
+lemma evtsys_rely_guar_compat: "i \<noteq> j \<Longrightarrow> evtsys_guar\<^sub>c i \<subseteq> evtsys_rely\<^sub>c j"
+  apply (case_tac i, case_tac j)
+    apply auto[1]
+   apply auto[1]
+  apply (case_tac j)
+  by auto
+
+lemma start_e_sim: "(s\<^sub>c, s\<^sub>a) \<in> state_inv \<Longrightarrow> e_sim 
+        \<Gamma>\<^sub>c (Start_Auction\<^sub>c qt, s\<^sub>c, x\<^sub>c) server\<^sub>c_rely server\<^sub>c_guar
+        state_inv (zetaI (start_map qt)) state_inv 
+        \<Gamma>\<^sub>a (Start_Auction\<^sub>a qt, s\<^sub>a, x\<^sub>a) UNIV UNIV"
+  apply (simp add: Start_Auction\<^sub>c_def Start_Auction\<^sub>a_def)
+  apply (rule_tac \<xi> = "state_inv" in PiCore_SIMP_Refine.BasicEvt_Rule')
+       apply (simp add: state_inv_def rel_guard_eq_def)
+       apply (smt (verit) Auc_Status.exhaust Collect_mono case_prodD split_cong)
+      apply (simp, simp add: stable_e_alpha, simp, simp)
+  apply clarsimp
+  apply (rule_tac \<zeta> = "start_map qt" in sim_implies_simI)
+   apply (rule_tac \<xi> = "start_pre" in prog_sim_pre_implies_sim)
+  using start_sim apply auto[1]
+   apply (simp add: state_inv_def rel_guard_and_def)
+   apply metis
+  by auto
+
+lemma close_e_sim: "(s\<^sub>c, s\<^sub>a) \<in> state_inv \<Longrightarrow> e_sim 
+        \<Gamma>\<^sub>c (Close_Auction\<^sub>c, s\<^sub>c, x\<^sub>c) server\<^sub>c_rely server\<^sub>c_guar
+        state_inv (zetaI close_map) state_inv 
+        \<Gamma>\<^sub>a (Close_Auction\<^sub>a, s\<^sub>a, x\<^sub>a) UNIV UNIV"
+  apply (simp add: Close_Auction\<^sub>c_def Close_Auction\<^sub>a_def)
+  apply (rule_tac \<xi> = "state_inv" in PiCore_SIMP_Refine.BasicEvt_Rule')
+       apply (simp add: state_inv_def rel_guard_eq_def)
+       apply fastforce
+      apply simp
+     apply (simp, simp add: stable_e_alpha, simp, simp)
+  apply clarsimp
+  apply (rule_tac \<zeta> = "close_map" in sim_implies_simI)
+   apply (rule_tac \<xi> = "close_pre" in prog_sim_pre_implies_sim)
+  using close_sim apply auto[1]
+   apply (simp add: state_inv_def rel_guard_and_def)
+   apply metis
+  by auto
+
+lemma publish_e_sim: "(s\<^sub>c, s\<^sub>a) \<in> state_inv \<Longrightarrow> e_sim 
+        \<Gamma>\<^sub>c (Publish_Res\<^sub>c, s\<^sub>c, x\<^sub>c) server\<^sub>c_rely server\<^sub>c_guar
+        state_inv (zetaI publish_map) state_inv 
+        \<Gamma>\<^sub>a (Publish_Res\<^sub>a, s\<^sub>a, x\<^sub>a) UNIV UNIV"
+  apply (simp add: Publish_Res\<^sub>c_def Publish_Res\<^sub>a_def)
+  apply (rule_tac \<xi> = "state_inv" in PiCore_SIMP_Refine.BasicEvt_Rule')
+       apply (simp add: state_inv_def rel_guard_eq_def)
+       apply (smt (verit) Auc_Status.exhaust Collect_mono case_prodD split_cong)
+      apply (simp, simp add: stable_e_alpha, simp, simp)
+  apply clarsimp
+  apply (rule_tac \<zeta> = "publish_map" in sim_implies_simI)
+   apply (rule_tac \<xi> = "publish_pre" in prog_sim_pre_implies_sim)
+  using publish_sim apply auto[1]
+   apply (simp add: state_inv_def rel_guard_and_def)
+   apply metis
+  by auto
+
+
+lemma register_e_sim: "(s\<^sub>c, s\<^sub>a) \<in> state_inv \<Longrightarrow> e_sim 
+        \<Gamma>\<^sub>c (Register_Bid\<^sub>c uid qt, s\<^sub>c, x\<^sub>c) (register\<^sub>c_rely uid) (register\<^sub>c_guar uid)
+        state_inv (zetaI (register_map uid qt)) state_inv 
+        \<Gamma>\<^sub>a (Register_Bid\<^sub>a uid qt, s\<^sub>a, x\<^sub>a) UNIV UNIV"
+  apply (simp add: Register_Bid\<^sub>c_def Register_Bid\<^sub>a_def)
+  apply (rule_tac \<xi> = "state_inv" in PiCore_SIMP_Refine.BasicEvt_Rule')
+       apply (simp add: state_inv_def rel_guard_eq_def)
+       apply (smt (verit) Auc_Status.exhaust Collect_mono case_prodD split_cong)
+      apply (simp, simp add: stable_e_alpha, simp, simp)
+  apply clarsimp
+  apply (rule_tac \<zeta> = "register_map uid qt" in sim_implies_simI)
+   apply (rule_tac \<xi> = "register_pre" in prog_sim_pre_implies_sim)
+  using register_sim by auto
+
+lemma EvtSys_on_Core_sim : "es_sim 
+      \<Gamma>\<^sub>c (Auction_Spec\<^sub>c k, s0\<^sub>c, x0\<^sub>c) (evtsys_rely\<^sub>c k) (evtsys_guar\<^sub>c k)
+      k state_inv ev_map ev_prog_map
+      \<Gamma>\<^sub>a (Auction_Spec\<^sub>a k, s0\<^sub>a, x0\<^sub>a) UNIV UNIV"
+  apply (case_tac k, simp add: Auction_Spec\<^sub>c_def Auction_Spec\<^sub>a_def)
+   apply (rule_tac \<gamma> = state_inv in PiCore_SIMP_Refine.EvtSys_rule, simp add: Register_Bid\<^sub>c_def, clarsimp)
+  using ev_map_register apply blast
+  using ev_prog_map_register ev_map_register register_e_sim apply auto[1]
+     apply (simp add: state_inv_def is_max_def, simp)
+  apply (simp add: stable_e_alpha)
+   apply (simp add: Auction_Spec\<^sub>c_def Auction_Spec\<^sub>a_def)
+   apply (rule_tac \<gamma> = state_inv in PiCore_SIMP_Refine.EvtSys_rule, 
+          simp add: Publish_Res\<^sub>c_def Close_Auction\<^sub>c_def Start_Auction\<^sub>c_def)
+  apply (simp add:  Publish_Res\<^sub>c_def Close_Auction\<^sub>c_def Start_Auction\<^sub>c_def get_evt_label_def label_def)
+  using ev_map_close ev_map_register ev_map_start apply blast
+      apply auto[1]
+  using ev_prog_map_close ev_map_close close_e_sim apply auto[1]
+  using ev_prog_map_publish ev_map_publish publish_e_sim apply auto[1]
+  using ev_prog_map_start ev_map_start start_e_sim apply (smt (verit) Collect_cong)
+  using init_sat_inv apply blast
+  by (simp, simp add: stable_e_alpha)
+
+theorem Arinc_sim: "pes_sim \<Gamma>\<^sub>c C0\<^sub>c state_inv ev_map ev_prog_map \<Gamma>\<^sub>a C0\<^sub>a"
+  apply (rule_tac R\<^sub>c = evtsys_rely\<^sub>c and G\<^sub>c = evtsys_guar\<^sub>c and R\<^sub>a = evtsys_rely\<^sub>a and G\<^sub>a = evtsys_guar\<^sub>a 
+        in PiCore_SIMP_Refine.Pes_rule)
+  apply (simp add: EvtSys_on_Core_sim)
+  using evtsys_rely_guar_compat by blast
+
+subsection \<open>Refinement between implementation and Abstraction\<close>
+
+interpretation ARINC_Sim_IFS: PiCore_Sim_IFS prog_simI
+  ptranI\<^sub>c petranI\<^sub>c None Auc_Env\<^sub>c C0\<^sub>c "exec_step\<^sub>c Auc_Env\<^sub>c" interf state_equiv\<^sub>c state_obs\<^sub>c domevt\<^sub>c
+  ptranI\<^sub>a petranI\<^sub>a None Auc_Env\<^sub>a C0\<^sub>a "exec_step\<^sub>a Auc_Env\<^sub>a" interf state_equiv\<^sub>a state_obs\<^sub>a domevt\<^sub>a
+  state_inv ev_map ev_prog_map
+proof
+  show "pes_sim Auc_Env\<^sub>c C0\<^sub>c register_post ev_map ev_prog_map Auc_Env\<^sub>a C0\<^sub>a"
+    by (simp add: Arinc_sim)
+  show "\<And>s\<^sub>c s\<^sub>a e\<^sub>c e\<^sub>a. (s\<^sub>c, s\<^sub>a) \<in> register_post \<Longrightarrow> ev_map e\<^sub>c = e\<^sub>a \<Longrightarrow> domevt\<^sub>c s\<^sub>c e\<^sub>c = domevt\<^sub>a s\<^sub>a e\<^sub>a"
+    by (simp add: Auction_dom_sim)
+  show "interf \<preceq>\<^sub>p interf"
+    by (simp add: policy_refine_refl)
+  show "\<And>s\<^sub>c s\<^sub>a t\<^sub>c t\<^sub>a d. (s\<^sub>c, s\<^sub>a) \<in> register_post \<Longrightarrow> (t\<^sub>c, t\<^sub>a) \<in> register_post \<Longrightarrow> s\<^sub>a \<sim>\<^sub>ad\<sim>\<^sub>a t\<^sub>a = s\<^sub>c \<sim>\<^sub>cd\<sim>\<^sub>c t\<^sub>c"
+    using Auction_sim_state_ifs by auto
+qed
+
+theorem ARINC_abs_lr_imp: "Auction\<^sub>a.local_respectC \<Longrightarrow> Auction\<^sub>c.local_respectC"
+  by (simp add: ARINC_Sim_IFS.PiCore_abs_lr_imp)
+
+theorem ARINC_abs_wsc_imp: "Auction\<^sub>a.weak_step_consistentC \<Longrightarrow> Auction\<^sub>c.weak_step_consistentC"
+  by (simp add: ARINC_Sim_IFS.PiCore_abs_wsc_imp)
 
 end

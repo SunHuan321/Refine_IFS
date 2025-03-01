@@ -593,7 +593,6 @@ theorem Basic_Await_Sound: "\<lbrakk>\<xi> \<subseteq> \<alpha>;  Stable \<xi> (
       (Some (Basic f\<^sub>c), R\<^sub>c, G\<^sub>c) \<preceq>\<^sub>p \<^sub>(\<^sub>\<alpha>\<^sub>;\<^sub>\<zeta>\<^sub>;\<^sub>\<xi>\<^sub>\<rhd>\<^sub>\<gamma>\<^sub>) (Some (Await b\<^sub>a C\<^sub>a), R\<^sub>a, G\<^sub>a)"
   by (simp add: not_stuck_def prog_sim_pre_def Basic_Await_Sim)
 
-
 definition coPre_None :: "[ 's\<^sub>c set, 's\<^sub>c com, ('s\<^sub>c \<times> 's\<^sub>c) set, ('s\<^sub>c \<times> 's\<^sub>c) set, 
     ('s\<^sub>c \<times> 's\<^sub>a) set, 's\<^sub>c com \<rightharpoonup> 's\<^sub>a com, 's\<^sub>c com \<rightharpoonup> 's\<^sub>a com, ('s\<^sub>c \<times> 's\<^sub>a) set, 
     ('s\<^sub>a \<times> 's\<^sub>a) set, ('s\<^sub>a \<times> 's\<^sub>a) set,
