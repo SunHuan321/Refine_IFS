@@ -182,11 +182,20 @@ definition EvtSys_on_Core\<^sub>c :: "Core \<Rightarrow> (EventLabel, Core, Stat
 definition ARINCXKernel_Spec\<^sub>c :: "(EventLabel, Core, State\<^sub>c, Prog\<^sub>c) paresys"
   where "ARINCXKernel_Spec\<^sub>c \<equiv> (\<lambda>k. EvtSys_on_Core\<^sub>c k)"
 
+definition s0c_init :: State\<^sub>c ("s0\<^sub>c")
+  where "s0\<^sub>c \<equiv> fst (System_Init\<^sub>c conf)"
+
+definition x0c_init :: "(EventLabel, Core, State\<^sub>c, Prog\<^sub>c) x" ("x0\<^sub>c")
+  where "x0\<^sub>c \<equiv> snd (System_Init\<^sub>c conf)"
+
+definition C0c_init :: "(EventLabel, Core, State\<^sub>c, Prog\<^sub>c) pesconf" ("C0\<^sub>c")
+  where "C0\<^sub>c \<equiv> (ARINCXKernel_Spec\<^sub>c, s0\<^sub>c, x0\<^sub>c)"
+
+(*
 axiomatization s0\<^sub>c where s0c_init: "s0\<^sub>c \<equiv> fst (System_Init\<^sub>c conf)"
 axiomatization x0\<^sub>c where x0c_init: "x0\<^sub>c \<equiv> snd (System_Init\<^sub>c conf)"
 axiomatization C0\<^sub>c where C0c_init: "C0\<^sub>c = (ARINCXKernel_Spec\<^sub>c, s0\<^sub>c, x0\<^sub>c)"
 
-(*
 definition domevt\<^sub>c :: "State\<^sub>c \<Rightarrow> (EventLabel, Core, State\<^sub>c, Prog\<^sub>c) event \<Rightarrow> Domain"
   where "domevt\<^sub>c s e \<equiv> let c = get_evt_core e in (let el = get_evt_el e in  
                          (if (el_is_on_Part el \<and> is_basicevt e) 
@@ -337,10 +346,20 @@ definition EvtSys_on_Core\<^sub>a :: "Core \<Rightarrow> (EventLabel, Core, Stat
 definition ARINCXKernel_Spec\<^sub>a :: "(EventLabel, Core, State\<^sub>a, Prog\<^sub>a) paresys"
   where "ARINCXKernel_Spec\<^sub>a \<equiv> (\<lambda>k. EvtSys_on_Core\<^sub>a k)"
 
+definition s0a_init :: State\<^sub>a ("s0\<^sub>a")
+  where "s0\<^sub>a \<equiv> fst (System_Init\<^sub>a conf)"
+
+definition x0a_init :: "(EventLabel, Core, State\<^sub>a, Prog\<^sub>a) x" ("x0\<^sub>a")
+  where "x0\<^sub>a \<equiv> snd (System_Init\<^sub>a conf)"
+
+definition C0a_init :: "(EventLabel, Core, State\<^sub>a, Prog\<^sub>a) pesconf" ("C0\<^sub>a")
+  where "C0\<^sub>a \<equiv> (ARINCXKernel_Spec\<^sub>a, s0\<^sub>a, x0\<^sub>a)"
+
+(*
 axiomatization s0\<^sub>a where s0a_init: "s0\<^sub>a \<equiv> fst (System_Init\<^sub>a conf)"
 axiomatization x0\<^sub>a where x0a_init: "x0\<^sub>a \<equiv> snd (System_Init\<^sub>a conf)"
 axiomatization C0\<^sub>a where C0a_init: "C0\<^sub>a = (ARINCXKernel_Spec\<^sub>a, s0\<^sub>a, x0\<^sub>a)"
-
+*)
 
 primrec el_domevt\<^sub>a :: "EL \<Rightarrow> Core \<Rightarrow> State\<^sub>a \<Rightarrow> Domain"
   where "el_domevt\<^sub>a Core_InitE k s = S (c2s conf k)"
@@ -523,11 +542,11 @@ lemma ARINC_dom_sim : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> state_inv; ev_map e
 lemma ARINC_sim_state_ifs : "\<lbrakk>(s\<^sub>c, s\<^sub>a) \<in> state_inv; (t\<^sub>c, t\<^sub>a) \<in> state_inv\<rbrakk> \<Longrightarrow> s\<^sub>a \<sim>\<^sub>a d \<sim>\<^sub>a t\<^sub>a = s\<^sub>c \<sim>\<^sub>c d \<sim>\<^sub>c t\<^sub>c"
   apply (case_tac d)
     apply (simp add: state_equiv\<^sub>a_def state_equiv\<^sub>c_def state_obs_part\<^sub>c_def state_obs_part\<^sub>a_def
-         System_Init\<^sub>a_def System_Init\<^sub>c_def s0a_init s0c_init)
+         System_Init\<^sub>a_def System_Init\<^sub>c_def s0a_init_def s0c_init_def)
   apply (smt (verit, del_insts) CollectD case_prodD obs_cap_equiva obs_cap_equivc obs_cap_part\<^sub>a_def 
      obs_cap_part\<^sub>c_def state_inv_def)
    apply (simp add: state_inv_def state_equiv\<^sub>a_def state_equiv\<^sub>c_def state_obs_sched\<^sub>c_def
-           state_obs_sched\<^sub>a_def System_Init\<^sub>a_def System_Init\<^sub>c_def s0a_init s0c_init)
+           state_obs_sched\<^sub>a_def System_Init\<^sub>a_def System_Init\<^sub>c_def s0a_init_def s0c_init_def)
   by (simp add: state_equiv\<^sub>a_def state_equiv\<^sub>c_def)
 
 subsection \<open>Rely-guarantee Proof of programs\<close>
@@ -1263,9 +1282,9 @@ lemma core_init_e_sim : "e_sim
   apply (simp add: Core_Init\<^sub>c_def Core_Init\<^sub>a_def)
   apply (rule_tac \<xi> = "init_pre k" in PiCore_SIMP_Refine.BasicEvt_Rule')
        apply (simp add: rel_guard_eq_def)+
-     apply (simp add: Stable_e_def related_transitions_e_def s0c_init s0a_init)
+     apply (simp add: Stable_e_def related_transitions_e_def s0c_init_def s0a_init_def)
      apply auto[1]
-    apply (simp add: System_Init\<^sub>a_def System_Init\<^sub>c_def rel_guard_eq_def s0a_init s0c_init state_inv_def)
+    apply (simp add: System_Init\<^sub>a_def System_Init\<^sub>c_def rel_guard_eq_def s0a_init_def s0c_init_def state_inv_def)
    apply simp
   apply clarsimp
   apply (rule_tac \<zeta> = "init_map k" in sim_implies_simI)
@@ -1375,7 +1394,7 @@ lemma EvtSys_on_Core_sim : "es_sim
   by (simp add: ev_map_init)
 
 theorem Arinc_sim: "pes_sim \<Gamma>\<^sub>c C0\<^sub>c state_inv ev_map ev_prog_map \<Gamma>\<^sub>a C0\<^sub>a"
-  apply (simp add: C0c_init C0a_init)
+  apply (simp add: C0c_init_def C0a_init_def)
   apply (rule_tac R\<^sub>c = evtsys_rely\<^sub>c and G\<^sub>c = evtsys_guar\<^sub>c and R\<^sub>a = evtsys_rely\<^sub>a and G\<^sub>a = evtsys_guar\<^sub>a 
         in PiCore_SIMP_Refine.Pes_rule)
    apply (simp add: ARINCXKernel_Spec\<^sub>c_def ARINCXKernel_Spec\<^sub>a_def, clarsimp)
